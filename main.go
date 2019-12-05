@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
+	certmgrv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
 
 	pkgutil "github.com/jetstack/cert-manager/pkg/util"
@@ -77,13 +79,26 @@ type godaddyDNSProviderSolver struct {
 // be used by your provider here, you should reference a Kubernetes Secret
 // resource and fetch these credentials using a Kubernetes clientset.
 type godaddyDNSProviderConfig struct {
+	APIKeySecretRef certmgrv1.SecretKeySelector `json:"apiKeySecretRef"`
+
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
 	AuthAPIKey    string `json:"authApiKey"`
 	AuthAPISecret string `json:"authApiSecret"`
 	Production    bool   `json:"production"`
+
+	// +optional
 	TTL           int    `json:"ttl"`
+}
+
+func (c *godaddyDNSProviderSolver) validate(cfg *godaddyDNSProviderConfig) error {
+	// Try to load the API key
+	if cfg.APIKeySecretRef.LocalObjectReference.Name == "" {
+		return errors.New("API token field were not provided")
+	}
+
+	return nil
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME

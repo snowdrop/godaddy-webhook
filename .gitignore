@@ -4,6 +4,7 @@ _out
 
 # Test binary, build with `go test -c`
 *.test
+webhook
 
 # Ignore the built binary
 cert-manager-webhook-godaddy
