@@ -8,11 +8,14 @@ $(shell mkdir -p "$(OUT)")
 verify:
 	go test -v .
 
+compile:
+	CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+
 build:
 	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
 
 push:
-    docker push "$(IMAGE_NAME):$(IMAGE_TAG)"
+	docker push "$(IMAGE_NAME):$(IMAGE_TAG)"
 
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:
