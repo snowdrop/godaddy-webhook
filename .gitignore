@@ -1,0 +1,9 @@
+# Folders to be excluded
+.idea
+_out
+
+# Test binary, build with `go test -c`
+*.test
+
+# Ignore the built binary
+cert-manager-webhook-godaddy

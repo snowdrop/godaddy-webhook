@@ -1,0 +1,6 @@
+{
+  "authAPIKey": "",
+  "authAPISecret": "",
+  "production": true,
+  "ttl": 600
+}
