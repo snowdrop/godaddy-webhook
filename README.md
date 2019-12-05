@@ -1,6 +1,5 @@
 # ACME Webhook for GoDaddy
 
-
 ## Installation
 
 ```bash

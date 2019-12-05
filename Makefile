@@ -1,5 +1,5 @@
-IMAGE_NAME := "webhook"
-IMAGE_TAG := "latest"
+IMAGE_NAME := "quay.io/snowdrop/cert-manager-webhook-godaddy"
+IMAGE_TAG  := "latest"
 
 OUT := $(shell pwd)/_out
 
@@ -10,6 +10,9 @@ verify:
 
 build:
 	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
+
+push:
+    docker push "$(IMAGE_NAME):$(IMAGE_TAG)"
 
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:

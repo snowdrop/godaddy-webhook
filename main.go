@@ -11,8 +11,7 @@ import (
 	"strings"
 	"time"
 
-	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	//"k8s.io/client-go/kubernetes"
+	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/rest"
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
@@ -203,7 +202,7 @@ func (c *godaddyDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, sto
 
 // loadConfig is a small helper function that decodes JSON configuration into
 // the typed config struct.
-func loadConfig(cfgJSON *extapi.JSON) (godaddyDNSProviderConfig, error) {
+func loadConfig(cfgJSON *apiext.JSON) (godaddyDNSProviderConfig, error) {
 	cfg := godaddyDNSProviderConfig{}
 	// handle the 'base case' where no configuration has been provided
 	if cfgJSON == nil {
