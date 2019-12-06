@@ -16,7 +16,7 @@ func TestRunsSuite(t *testing.T) {
 	// snippet of valid configuration that should be included on the
 	// ChallengeRequest passed as part of the test cases.
 
-	fixture := dns.NewFixture(&godaddyDNSProviderSolver{},
+	fixture := dns.NewFixture(&godaddyDNSSolver{},
 		dns.SetResolvedZone(zone),
 		dns.SetAllowAmbientCredentials(false),
 		dns.SetManifestPath("testdata/godaddy"),

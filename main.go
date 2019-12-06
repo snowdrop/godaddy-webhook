@@ -50,15 +50,15 @@ func main() {
 	// webhook, where the Name() method will be used to disambiguate between
 	// the different implementations.
 	cmd.RunWebhookServer(GroupName,
-		&godaddyDNSProviderSolver{},
+		&godaddyDNSSolver{},
 	)
 }
 
-// godaddyDNSProviderSolver implements the provider-specific logic needed to
+// godaddyDNSSolver implements the provider-specific logic needed to
 // 'present' an ACME challenge TXT record for your own DNS provider.
 // To do so, it must implement the `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver`
 // interface.
-type godaddyDNSProviderSolver struct {
+type godaddyDNSSolver struct {
 	client *kubernetes.Clientset
 }
 
@@ -98,7 +98,7 @@ type godaddyDNSProviderConfig struct {
 	SequenceInterval int `json:"sequenceInterval"`
 }
 
-func (c *godaddyDNSProviderSolver) validate(cfg *godaddyDNSProviderConfig) error {
+func (c *godaddyDNSSolver) validate(cfg *godaddyDNSProviderConfig) error {
 	// Try to load the API key
 	if cfg.APIKeySecretRef.LocalObjectReference.Name == "" {
 		return errors.New("API token field were not provided as no Kubernetes Secret exists !")
@@ -112,26 +112,23 @@ func (c *godaddyDNSProviderSolver) validate(cfg *godaddyDNSProviderConfig) error
 // solvers configured with the same Name() **so long as they do not co-exist
 // within a single webhook deployment**.
 // For example, `cloudflare` may be used as the name of a solver.
-func (c *godaddyDNSProviderSolver) Name() string {
+func (c *godaddyDNSSolver) Name() string {
 	return providerName
 }
 
-// Present is responsible for actually presenting the DNS record with the
-// DNS provider.
-// This method should tolerate being called multiple times with the same value.
-// cert-manager itself will later perform a self check to ensure that the
-// solver has correctly configured the DNS provider.
-func (c *godaddyDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
-	cfg, err := loadConfig(ch.Config)
-	if err != nil {
-		return err
+// Return GoDaddi API URL to query the API domains
+// See - https://developer.godaddy.com/doc/endpoint/domains
+// OTE environment: https://api.ote-godaddy.com
+// PRODUCTION environment: https://api.godaddy.com
+func (c *godaddyDNSSolver) apiURL(cfg godaddyDNSProviderConfig) string {
+	baseURL := "https://api.ote-godaddy.com"
+	if cfg.Production {
+		baseURL = "https://api.godaddy.com"
 	}
+	return baseURL
+}
 
-	// Verify if the config contains the required parameters such as SecretRef
-	if err := c.validate(&cfg); err != nil {
-		return err
-	}
-
+func (c *godaddyDNSSolver) extractApiTokenFromSecret(cfg *godaddyDNSProviderConfig, ch *v1alpha1.ChallengeRequest) error {
 	sec, err := c.client.CoreV1().
 		Secrets(ch.ResourceNamespace).
 		Get(cfg.APIKeySecretRef.LocalObjectReference.Name, metaV1.GetOptions{})
@@ -151,13 +148,32 @@ func (c *godaddyDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error 
 	cfg.AuthAPIKey = token[0]
 	cfg.AuthAPISecret = token[1]
 
-	// https://developer.godaddy.com/doc/endpoint/domains
-	// OTE environment: https://api.ote-godaddy.com
-	// PRODUCTION environment: https://api.godaddy.com
-	baseURL := "https://api.ote-godaddy.com"
-	if cfg.Production {
-		baseURL = "https://api.godaddy.com"
+	return nil
+}
+
+// Present is responsible for actually presenting the DNS record with the
+// DNS provider.
+// This method should tolerate being called multiple times with the same value.
+// cert-manager itself will later perform a self check to ensure that the
+// solver has correctly configured the DNS provider.
+func (c *godaddyDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
 	}
+
+	// Verify if the config contains the required parameters such as SecretRef
+	if err := c.validate(&cfg); err != nil {
+		return err
+	}
+
+	// Extract the Godaddy Api and Secret from the K8s Secret
+	// and assign it the AuthAPIKey and AuthAPISecret of the Config
+	if err := c.extractApiTokenFromSecret(&cfg, ch); err != nil {
+		return err
+	}
+
+	baseURL := c.apiURL(cfg)
 
 	recordName := c.extractRecordName(ch.ResolvedFQDN, ch.ResolvedZone)
 
@@ -184,7 +200,7 @@ func (c *godaddyDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error 
 // value provided on the ChallengeRequest should be cleaned up.
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
-func (c *godaddyDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
+func (c *godaddyDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
@@ -195,32 +211,13 @@ func (c *godaddyDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error 
 		return err
 	}
 
-	sec, err := c.client.CoreV1().
-		Secrets(ch.ResourceNamespace).
-		Get(cfg.APIKeySecretRef.LocalObjectReference.Name, metaV1.GetOptions{})
-	if err != nil {
+	// Extract the Godaddy Api and Secret from the K8s Secret
+	// and assign it the AuthAPIKey and AuthAPISecret of the Config
+	if err := c.extractApiTokenFromSecret(&cfg, ch); err != nil {
 		return err
 	}
 
-	secBytes, ok := sec.Data[cfg.APIKeySecretRef.Key]
-	if !ok {
-		return fmt.Errorf("Key %q not found in secret \"%s/%s\"",
-			cfg.APIKeySecretRef.Key,
-			cfg.APIKeySecretRef.LocalObjectReference.Name,
-			ch.ResourceNamespace)
-	}
-
-	token := strings.Split(string(secBytes), ":")
-	cfg.AuthAPIKey = token[0]
-	cfg.AuthAPISecret = token[1]
-
-	// https://developer.godaddy.com/doc/endpoint/domains
-	// OTE environment: https://api.ote-godaddy.com
-	// PRODUCTION environment: https://api.godaddy.com
-	baseURL := "https://api.ote-godaddy.com"
-	if cfg.Production {
-		baseURL = "https://api.godaddy.com"
-	}
+	baseURL := c.apiURL(cfg)
 
 	recordName := c.extractRecordName(ch.ResolvedFQDN, ch.ResolvedZone)
 
@@ -249,7 +246,7 @@ func (c *godaddyDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error 
 // provider accounts.
 // The stopCh can be used to handle early termination of the webhook, in cases
 // where a SIGTERM or similar signal is sent to the webhook process.
-func (c *godaddyDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (c *godaddyDNSSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	cl, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return err
@@ -274,7 +271,7 @@ func loadConfig(cfgJSON *apiext.JSON) (godaddyDNSProviderConfig, error) {
 	return cfg, nil
 }
 
-func (c *godaddyDNSProviderSolver) updateRecords(cfg godaddyDNSProviderConfig, baseURL string, records []DNSRecord, domainZone string, recordName string) error {
+func (c *godaddyDNSSolver) updateRecords(cfg godaddyDNSProviderConfig, baseURL string, records []DNSRecord, domainZone string, recordName string) error {
 	body, err := json.Marshal(records)
 	if err != nil {
 		return err
@@ -296,7 +293,7 @@ func (c *godaddyDNSProviderSolver) updateRecords(cfg godaddyDNSProviderConfig, b
 	return nil
 }
 
-func (c *godaddyDNSProviderSolver) makeRequest(cfg godaddyDNSProviderConfig, baseURL string, method string, uri string, body io.Reader) (*http.Response, error) {
+func (c *godaddyDNSSolver) makeRequest(cfg godaddyDNSProviderConfig, baseURL string, method string, uri string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", baseURL, uri), body)
 	if err != nil {
 		return nil, err
@@ -314,14 +311,14 @@ func (c *godaddyDNSProviderSolver) makeRequest(cfg godaddyDNSProviderConfig, bas
 	return client.Do(req)
 }
 
-func (c *godaddyDNSProviderSolver) extractRecordName(fqdn, domain string) string {
+func (c *godaddyDNSSolver) extractRecordName(fqdn, domain string) string {
 	if idx := strings.Index(fqdn, "."+domain); idx != -1 {
 		return fqdn[:idx]
 	}
 	return util.UnFqdn(fqdn)
 }
 
-func (c *godaddyDNSProviderSolver) extractDomainName(zone string) string {
+func (c *godaddyDNSSolver) extractDomainName(zone string) string {
 	authZone, err := util.FindZoneByFqdn(zone, util.RecursiveNameservers)
 	if err != nil {
 		return zone
@@ -329,7 +326,7 @@ func (c *godaddyDNSProviderSolver) extractDomainName(zone string) string {
 	return util.UnFqdn(authZone)
 }
 
-func (c *godaddyDNSProviderSolver) getZone(fqdn string) (string, error) {
+func (c *godaddyDNSSolver) getZone(fqdn string) (string, error) {
 	authZone, err := util.FindZoneByFqdn(fqdn, util.RecursiveNameservers)
 	if err != nil {
 		return "", err
