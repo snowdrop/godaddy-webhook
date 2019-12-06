@@ -14,9 +14,7 @@ jobs:
       - run:
           command: go mod download -json
       - run:
-          command: |
-            echo "Build go webhook application"
-            GO111MODULE=on CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+          command: GO111MODULE=on CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
 
   createImage:
     machine: true
