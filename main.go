@@ -13,6 +13,8 @@ import (
 	"time"
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
@@ -23,6 +25,11 @@ import (
 	pkgutil "github.com/jetstack/cert-manager/pkg/util"
 )
 
+const providerName = "godaddy"
+
+// GroupName a API group name
+var GroupName = os.Getenv("GROUP_NAME")
+
 // DNSRecord a DNS record
 type DNSRecord struct {
 	Type     string `json:"type"`
@@ -31,9 +38,6 @@ type DNSRecord struct {
 	Priority int    `json:"priority,omitempty"`
 	TTL      int    `json:"ttl,omitempty"`
 }
-
-// GroupName a API group name
-var GroupName = os.Getenv("GROUP_NAME")
 
 func main() {
 	if GroupName == "" {
@@ -55,13 +59,7 @@ func main() {
 // To do so, it must implement the `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver`
 // interface.
 type godaddyDNSProviderSolver struct {
-	// If a Kubernetes 'clientset' is needed, you must:
-	// 1. uncomment the additional `client` field in this structure below
-	// 2. uncomment the "k8s.io/client-go/kubernetes" import at the top of the file
-	// 3. uncomment the relevant code in the Initialize method below
-	// 4. ensure your webhook's service account has the required RBAC role
-	//    assigned to it for interacting with the Kubernetes APIs you need.
-	//client kubernetes.Clientset
+	client *kubernetes.Clientset
 }
 
 // godaddyDNSProviderConfig is a structure that is used to decode into when
@@ -79,25 +77,32 @@ type godaddyDNSProviderSolver struct {
 // be used by your provider here, you should reference a Kubernetes Secret
 // resource and fetch these credentials using a Kubernetes clientset.
 type godaddyDNSProviderConfig struct {
-	APIKeySecretRef certmgrv1.SecretKeySelector `json:"apiKeySecretRef"`
-
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
+
+	APIKeySecretRef certmgrv1.SecretKeySelector `json:"apiKeySecretRef"`
 
 	AuthAPIKey    string `json:"authApiKey"`
 	AuthAPISecret string `json:"authApiSecret"`
 	Production    bool   `json:"production"`
 
-	// +optional
+	// +optional. The TTL of the TXT record used for the DNS challenge
 	TTL           int    `json:"ttl"`
+	// +optional.  API request timeout
+	HttpTimeout int `json:"timeout"`
+	// +optional.  Maximum waiting time for DNS propagation
+	PropagationTimeout int `json:"propagationTimeout"`
+	// +optional. Time between DNS propagation check
+	PollingInterval int `json:"pollingInterval"`
+	// +optional. Interval between iteration
+	SequenceInterval int `json:"sequenceInterval"`
 }
 
 func (c *godaddyDNSProviderSolver) validate(cfg *godaddyDNSProviderConfig) error {
 	// Try to load the API key
 	if cfg.APIKeySecretRef.LocalObjectReference.Name == "" {
-		return errors.New("API token field were not provided")
+		return errors.New("API token field were not provided as no Kubernetes Secret exists !")
 	}
-
 	return nil
 }
 
@@ -108,7 +113,7 @@ func (c *godaddyDNSProviderSolver) validate(cfg *godaddyDNSProviderConfig) error
 // within a single webhook deployment**.
 // For example, `cloudflare` may be used as the name of a solver.
 func (c *godaddyDNSProviderSolver) Name() string {
-	return "godaddy"
+	return providerName
 }
 
 // Present is responsible for actually presenting the DNS record with the
@@ -122,7 +127,31 @@ func (c *godaddyDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error 
 		return err
 	}
 
-	fmt.Printf("Decoded configuration %v", cfg)
+	// Verify if the config contains the required parameters such as SecretRef
+	if err := c.validate(&cfg); err != nil {
+		return err
+	}
+
+	sec, err := c.client.CoreV1().
+		Secrets(ch.ResourceNamespace).
+		Get(cfg.APIKeySecretRef.LocalObjectReference.Name, metaV1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	secBytes, ok := sec.Data[cfg.APIKeySecretRef.Key]
+	if !ok {
+		return fmt.Errorf("Key %q not found in secret \"%s/%s\"",
+			cfg.APIKeySecretRef.Key,
+			cfg.APIKeySecretRef.LocalObjectReference.Name,
+			ch.ResourceNamespace)
+	}
+
+	token := strings.Split(string(secBytes), ":")
+	cfg.AuthAPIKey = token[0]
+	cfg.AuthAPISecret = token[1]
+
+	//fmt.Printf("Decoded configuration %v", cfg)
 
 	// https://developer.godaddy.com/doc/endpoint/domains
 	// OTE environment: https://api.ote-godaddy.com
@@ -201,17 +230,12 @@ func (c *godaddyDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error 
 // The stopCh can be used to handle early termination of the webhook, in cases
 // where a SIGTERM or similar signal is sent to the webhook process.
 func (c *godaddyDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
-	///// UNCOMMENT THE BELOW CODE TO MAKE A KUBERNETES CLIENTSET AVAILABLE TO
-	///// YOUR CUSTOM DNS PROVIDER
+	cl, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return err
+	}
 
-	//cl, err := kubernetes.NewForConfig(kubeClientConfig)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//c.client = cl
-
-	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLE
+	c.client = cl
 	return nil
 }
 

@@ -8,6 +8,23 @@ $ helm install --name godaddy-webhook --namespace cert-manager ./deploy/godaddy-
 
 ## Issuer
 
+In order to communicate with Godaddy DNS provider, we will create a Kubernetes Secret
+to store your `GoDaddy API` and `GoDaddy Secret`. 
+Next, we will define a ClusterIssuer containing the definition of the ACME Server - Letsencrypt
+and the DNS provider to be used
+
+### Secret
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gadaddy-api-key
+type: Opaque
+stringData:
+  key: <GODADDY_API:GODADDY_SECRET>
+```
+
 ### ClusterIssuer
 
 ```yaml
@@ -28,6 +45,9 @@ spec:
       dns01:
         webhook:
           config:
+            apiKeySecretRef:
+              name: godaddy-api-key
+              key: token
             authApiKey: <your GoDaddy authAPIKey>
             authApiSecret: <your GoDaddy authApiSecret>
             production: true
@@ -98,7 +118,7 @@ $ scripts/fetch-test-binaries.sh
 You can run the test suite with:
 
 ```bash
-$ TEST_ZONE_NAME=example.com go test .
+$ TEST_ZONE_NAME=example.com. go test .
 ```
 
 The example file has a number of areas you must fill in and replace with your

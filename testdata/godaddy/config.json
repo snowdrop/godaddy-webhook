@@ -1,6 +1,8 @@
 {
-  "authAPIKey": "",
-  "authAPISecret": "",
+  "apiKeySecretRef": {
+    "name": "dummy",
+    "key": "token"
+  },
   "production": true,
   "ttl": 600
 }
