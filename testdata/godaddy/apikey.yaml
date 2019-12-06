@@ -4,4 +4,4 @@ metadata:
   name: dummy
 type: Opaque
 stringData:
-  token: "dLDD4PTjgyQb_jKqVef5UCxHpvBczGtDHq:jL44TPNVS7RRMPQmGgTps"
+  token: "<GODADDY_KEY:GODADDY_SECRET>"
