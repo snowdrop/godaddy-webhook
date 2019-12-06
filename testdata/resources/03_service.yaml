@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuard
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080 # Container HTTP Port
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8443 # Container HTTPS Port
+    protocol: TCP
+  selector:
+    app: kuard
