@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dummy
+type: Opaque
+stringData:
+  token: "GODADDY_API:GODADDY_SECRET"
