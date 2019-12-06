@@ -1,0 +1,54 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version
+      - image: circleci/golang:1.9
+
+    #### TEMPLATE_NOTE: go expects specific checkout path representing url
+    #### expecting it in the form of
+    ####   /go/src/github.com/circleci/go-tool
+    ####   /go/src/bitbucket.org/circleci/go-tool
+    working_directory: /go/src/github.com/snowdrop/webhook-godaddy
+
+    steps:
+      # The checkout step will default to the working_directory we have already defined.
+      - checkout
+
+      # Run the Integration test
+      - run:
+          name: Get dependencies and do test
+          command: |
+            make verify
+
+      # Build project
+      - run:
+          command: CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+
+  createImage:
+    machine: true
+
+    steps:
+      - checkout
+
+      - run:
+          name: Build Docker image
+          command: |
+              VERSION=$(git rev-parse --short HEAD 2>/dev/null)
+              docker build -t cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
+              TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${VERSION})
+              docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
+              docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:latest
+              docker login quay.io -u="${QUAY_ROBOT_USER}" -p="${QUAY_ROBOT_TOKEN}"
+              docker push quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
+              docker push quay.io/snowdrop/cert-manager-webhook-godaddy:latest
+
+workflows:
+  version: 2
+  simple-build:
+    jobs:
+      - build
+      - createImage
