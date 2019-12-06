@@ -9,13 +9,15 @@ $ helm install --name godaddy-webhook --namespace cert-manager ./deploy/godaddy-
 ## Issuer
 
 In order to communicate with Godaddy DNS provider, we will create a Kubernetes Secret
-to store your `GoDaddy API` and `GoDaddy Secret`. 
-Next, we will define a ClusterIssuer containing the definition of the ACME Server - Letsencrypt
+to store the Godaddy `API` and `GoDaddy Secret`. 
+Next, we will define a `ClusterIssuer` containing the information to access the ACME Letsencrypt Server
 and the DNS provider to be used
 
 ### Secret
 
+- Create a `Secret` containing as key parameter the concatenation of the Godaddy Api and Secret separated by ":"
 ```yaml
+cat <<EOF > secret.yml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -23,21 +25,35 @@ metadata:
 type: Opaque
 stringData:
   key: <GODADDY_API:GODADDY_SECRET>
+EOF
+```
+- Next, deploy it under the namespace where you would like to get your certificate/key signed by the ACME CA Authority
+```bash
+kubectl appy -f secret.yml -n <NAMESPACE>
 ```
 
 ### ClusterIssuer
 
+- Create a `ClusterIssuer`resource to specify the address of the ACME staging or production server to access.
+  Add the DNS01 Solver Config that this webhook will use to communicate with the API of the Godaddy Server in order to create
+   or delete an ACME Challenge TXT record that the DNS Provider will accept/refuse if the domain name exists.
+
 ```yaml
-apiVersion: certmanager.k8s.io/v1alpha1
+cat <<EOF > clusterissuer.yml 
+EOF apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
 spec:
   acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: <your email>
+    # ACME Server
+    # prod : https://acme-v02.api.letsencrypt.org/directory
+    # staging : https://acme-staging-v02.api.letsencrypt.org/directory
+    server: <URL_ACME_SERVER> 
+    # ACME Email address
+    email: <ACME_EMAIL>
     privateKeySecretRef:
-      name: letsencrypt-prod
+      name: letsencrypt-<ENV> # staging or production
     solvers:
     - selector:
         dnsNames:
@@ -48,18 +64,21 @@ spec:
             apiKeySecretRef:
               name: godaddy-api-key
               key: token
-            authApiKey: <your GoDaddy authAPIKey>
-            authApiSecret: <your GoDaddy authApiSecret>
             production: true
             ttl: 600
           groupName: acme.mycompany.com
           solverName: godaddy
+EOF
 ```
-
-Certificate
+- Next, install it on your kubernetes cluster
+```bash
+kubectl apply -f clusterissuer.yml
+```
+- Next, create for each of your domain where you need a signed certificate from the Letsencrypt authority the following certificate
 
 ```yaml
-apiVersion: certmanager.k8s.io/v1alpha1
+cat <<EOF > certificate.yml
+apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: wildcard-example-com
@@ -71,18 +90,24 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
+EOF
 ```
 
-Ingress
+- Deploy it
+```bash
+kubectl apply -f certificate.yml -n <NAMESPACE>
+```
+
+- If you have deployed a NGinx Ingress Controller on Kubernetes in order to route the trafic to your service
+  and to manage the TLS termination, then deploy the followiing ingress resource where 
 
 ```yaml
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: example-ingress
-  namespace: default
   annotations:
-    certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"
+    kubernetes.io/ingress.class: "nginx"
 spec:
   tls:
   - hosts:
@@ -97,6 +122,13 @@ spec:
           serviceName: backend-service
           servicePort: 80
 ```
+
+- Deploy it
+```bash
+kubectl apply -f ingress.yml -n <NAMESPACE>
+```
+
+**NOTE**: If you prefer to delegate to the certmanager the responsability to create the Certificate resource, then add the following annotation as described within the documentation `    certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"`
 
 ## Development
 
