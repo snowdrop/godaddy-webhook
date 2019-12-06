@@ -2,6 +2,12 @@
 
 ## Installation
 
+### Cert Manager
+
+Follow the [instructions](https://cert-manager.io/docs/installation/) using the cert manager documentation to install it within your cluster.
+
+### The Webhook
+
 ```bash
 $ helm install --name godaddy-webhook --namespace cert-manager ./deploy/godaddy-webhook
 ```
