@@ -151,8 +151,6 @@ func (c *godaddyDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error 
 	cfg.AuthAPIKey = token[0]
 	cfg.AuthAPISecret = token[1]
 
-	//fmt.Printf("Decoded configuration %v", cfg)
-
 	// https://developer.godaddy.com/doc/endpoint/domains
 	// OTE environment: https://api.ote-godaddy.com
 	// PRODUCTION environment: https://api.godaddy.com
@@ -192,7 +190,29 @@ func (c *godaddyDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error 
 		return err
 	}
 
-	fmt.Printf("Decoded configuration %v", cfg)
+	// Verify if the config contains the required parameters such as SecretRef
+	if err := c.validate(&cfg); err != nil {
+		return err
+	}
+
+	sec, err := c.client.CoreV1().
+		Secrets(ch.ResourceNamespace).
+		Get(cfg.APIKeySecretRef.LocalObjectReference.Name, metaV1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	secBytes, ok := sec.Data[cfg.APIKeySecretRef.Key]
+	if !ok {
+		return fmt.Errorf("Key %q not found in secret \"%s/%s\"",
+			cfg.APIKeySecretRef.Key,
+			cfg.APIKeySecretRef.LocalObjectReference.Name,
+			ch.ResourceNamespace)
+	}
+
+	token := strings.Split(string(secBytes), ":")
+	cfg.AuthAPIKey = token[0]
+	cfg.AuthAPISecret = token[1]
 
 	// https://developer.godaddy.com/doc/endpoint/domains
 	// OTE environment: https://api.ote-godaddy.com
