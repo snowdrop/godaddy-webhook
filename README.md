@@ -115,10 +115,15 @@ An example Go test file has been provided in [main_test.go]().
 $ scripts/fetch-test-binaries.sh
 ```
 
-You can run the test suite with:
+You can run the test suite using `go`
 
 ```bash
 $ TEST_ZONE_NAME=example.com. go test .
+```
+
+or the following make command
+```bash
+make test TEST_ZONE_NAME=example.me.
 ```
 
 The example file has a number of areas you must fill in and replace with your

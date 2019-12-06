@@ -1,5 +1,6 @@
-IMAGE_NAME := "quay.io/snowdrop/cert-manager-webhook-godaddy"
-IMAGE_TAG  := "latest"
+IMAGE_NAME     := "quay.io/snowdrop/cert-manager-webhook-godaddy"
+IMAGE_TAG      := "latest"
+TEST_ZONE_NAME ?= example.com.
 
 OUT := $(shell pwd)/_out
 
@@ -8,6 +9,9 @@ $(shell mkdir -p "$(OUT)")
 verify:
 	sh ./scripts/fetch-test-binaries.sh
 	go test -v .
+
+test:
+	TEST_ZONE_NAME=$(TEST_ZONE_NAME) go test .
 
 compile:
 	CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
