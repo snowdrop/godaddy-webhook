@@ -20,9 +20,15 @@ $ helm install --name godaddy-webhook --namespace cert-manager ./deploy/godaddy-
 ```
 **NOTE** : The kubernetes resources used to install the Webhook should be deployed within the same namespace as the cert-manager.
 
-To uninstall the webhook:
+- To uninstall the webhook:
 ```bash
 $ helm delete godaddy-webhook --purge
+```
+
+- Alternatively, you can install the webhook using the list of the kubernetes resources. The namespace
+  used to install the resources is `cert-manager`
+```bash
+ kubectl apply -f deploy/webhook-all.yml --validate=false
 ```
 
 ## Issuer
