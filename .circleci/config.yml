@@ -5,7 +5,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.12.5
 
     working_directory: /go/src/github.com/snowdrop/webhook-godaddy
 
@@ -14,7 +14,9 @@ jobs:
       - run:
           command: go mod download -json
       - run:
-          command: CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+          command: |
+            echo "Build go webhook application"
+            GO111MODULE=on CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
 
   createImage:
     machine: true
