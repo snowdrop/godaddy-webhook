@@ -5,13 +5,25 @@
 ### Cert Manager
 
 Follow the [instructions](https://cert-manager.io/docs/installation/) using the cert manager documentation to install it within your cluster.
+On kubernetes, the process is pretty straightforward if you use the following commands:
+```bash
+kubectl create namespace cert-manager
+kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.12.0/cert-manager.yaml
+```
 
 ### The Webhook
 
+- Initialize first helm to install `Tiller` if not yet done and next install the helm chart
 ```bash
+$ helm init
 $ helm install --name godaddy-webhook --namespace cert-manager ./deploy/godaddy-webhook
 ```
-**NOTE** : The kubernetes resources to install the Webhook should be deployed within the same namespace as the cert-manager
+**NOTE** : The kubernetes resources used to install the Webhook should be deployed within the same namespace as the cert-manager.
+
+To uninstall the webhook:
+```bash
+$ helm delete godaddy-webhook --purge
+```
 
 ## Issuer
 
