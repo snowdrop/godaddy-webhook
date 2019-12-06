@@ -18,12 +18,6 @@ jobs:
       # The checkout step will default to the working_directory we have already defined.
       - checkout
 
-      # Run the Integration test
-      - run:
-          name: Get dependencies and do test
-          command: |
-            make verify
-
       # Build project
       - run:
           command: CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
