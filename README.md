@@ -5,6 +5,7 @@
 ```bash
 $ helm install --name godaddy-webhook --namespace cert-manager ./deploy/godaddy-webhook
 ```
+**NOTE** : The kubernetes resources to install the Webhook should be deployed within the same namespace as the cert-manager
 
 ## Issuer
 
