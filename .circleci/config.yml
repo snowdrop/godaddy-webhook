@@ -5,29 +5,21 @@ version: 2
 jobs:
   build:
     docker:
-      # specify the version
-      - image: circleci/golang:1.9
+      - image: circleci/golang:1.12
 
-    #### TEMPLATE_NOTE: go expects specific checkout path representing url
-    #### expecting it in the form of
-    ####   /go/src/github.com/circleci/go-tool
-    ####   /go/src/bitbucket.org/circleci/go-tool
     working_directory: /go/src/github.com/snowdrop/webhook-godaddy
 
     steps:
-      # The checkout step will default to the working_directory we have already defined.
       - checkout
-
-      # Build project
+      - run:
+          command: go mod download -json
       - run:
           command: CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
 
   createImage:
     machine: true
-
     steps:
       - checkout
-
       - run:
           name: Build Docker image
           command: |
