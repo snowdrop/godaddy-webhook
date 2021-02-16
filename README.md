@@ -49,7 +49,7 @@ metadata:
   name: godaddy-api-key
 type: Opaque
 stringData:
-  key: <GODADDY_API:GODADDY_SECRET>
+  token: <GODADDY_API:GODADDY_SECRET>
 EOF
 ```
 - Next, deploy it under the namespace where you would like to get your certificate/key signed by the ACME CA Authority
