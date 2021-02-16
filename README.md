@@ -46,7 +46,7 @@ cat <<EOF > secret.yml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: gadaddy-api-key
+  name: godaddy-api-key
 type: Opaque
 stringData:
   key: <GODADDY_API:GODADDY_SECRET>
