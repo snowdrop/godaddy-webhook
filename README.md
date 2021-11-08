@@ -65,7 +65,7 @@ kubectl appy -f secret.yml -n <NAMESPACE>
 
 ```yaml
 cat <<EOF > clusterissuer.yml 
-EOF apiVersion: cert-manager.io/v1alpha2
+EOF apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
@@ -103,7 +103,7 @@ kubectl apply -f clusterissuer.yml
 
 ```yaml
 cat <<EOF > certificate.yml
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: wildcard-example-com
