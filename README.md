@@ -165,38 +165,40 @@ spec:
 kubectl apply -f ingress.yml -n <NAMESPACE>
 ```
 
-**NOTE**: If you prefer to delegate to the certmanager the responsability to create the Certificate resource, then add the following annotation as described within the documentation `    certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"`
+**NOTE**: If you prefer to delegate to the certmanager the responsibility to create the Certificate resource, then add the following annotation as described within the documentation `    certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"`
 
 ## Development
 
 ### Running the test suite
-All DNS providers **must** run the DNS01 provider conformance testing suite,
-else they will have undetermined behaviour when used with cert-manager.
 
-**It is essential that you configure and run the test suite when creating a
-DNS01 webhook.**
-
-An example Go test file has been provided in [main_test.go]().
-
-> Prepare
+To test one of your registered domains on godaddy, create a secret.yml file using as [example] file(./testdata/godaddy/godaddy.secret.example)
+Replace the `$GODADDY_TOKEN` with your Godaddy API token which corresponds to your `<GODADDY_KEY>:<GODADDY_SECRET>`:
 
 ```bash
-$ scripts/fetch-test-binaries.sh
+pushd testdata/godaddy
+export GODADDY_TOKEN=$(echo -n "<GODADDY_KEY:GODADDY_SECRET>")
+envsubst < godaddy.secret.example > secret.yaml
+popd
 ```
 
-You can run the test suite using `go`
+Install a kube-apiserver, etcd locally using the following bash script
 
 ```bash
-$ TEST_ZONE_NAME=example.com. go test .
+./scripts/fetch-test-binaries.sh
 ```
 
-or the following make command
+Now, execute the test suite and pass as parameter the domain name to be tested
+
 ```bash
-make test TEST_ZONE_NAME=example.me.
+TEST_ZONE_NAME=<YOUR_DOMAIN.NAME>. go test -v .
 ```
 
-The example file has a number of areas you must fill in and replace with your
-own options in order for tests to pass.
+or the following `make` command
+```bash
+make test TEST_ZONE_NAME=<YOUR_DOMAIN.NAME>
+```
+**IMPORTANT**: As godaddy server could be very slow to reply, it could be needed to increase the TTL defined within the `config.json` file. The test could also fail
+as the kube api server is currently finalizing the deletion of the namespace `"spec":{"finalizers":["kubernetes"]},"status":{"phase":"Terminating"}}`
 
 ### Generate the container image
 

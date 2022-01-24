@@ -1,8 +1,8 @@
 {
   "apiKeySecretRef": {
-    "name": "dummy",
+    "name": "godaddy-credentials",
     "key": "token"
   },
   "production": true,
-  "ttl": 600
+  "ttl": 900
 }

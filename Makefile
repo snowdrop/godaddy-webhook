@@ -19,7 +19,7 @@ verify: clean install-tools
 	go test -v .
 
 test: clean install-tools
-	TEST_ZONE_NAME=$(TEST_ZONE_NAME) go test .
+	TEST_ZONE_NAME=$(TEST_ZONE_NAME) go test -v .
 
 compile:
 	# go mod download -json
