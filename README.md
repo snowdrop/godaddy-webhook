@@ -201,10 +201,16 @@ own options in order for tests to pass.
 ### Generate the container image
 
 - Verify first that you have access to a docker server running on your kubernetes or openshift cluster ;-)
+- Compile the project locally (to check if no go error are reported)
+```bash
+make compile
+```
 - Next, build the container image using the Dockerfile included within this project
 ```bash
-docker build -t quay.io/snowdrop/cert-manager-webhook-godaddy .
+IMAGE_REPOSITORY="quay.io/snowdrop"
+docker build -t ${IMAGE_REPOSITORY}/cert-manager-webhook-godaddy .
 ```
+**NOTE**: Change the `IMAGE_REGPOSITORY` to point to your container repository where you have access
 - Tag and push it
 ```bash
 

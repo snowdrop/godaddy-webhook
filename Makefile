@@ -15,7 +15,11 @@ test:
 	TEST_ZONE_NAME=$(TEST_ZONE_NAME) go test .
 
 compile:
-	go mod download -json
+	# go mod download -json
+	rm -rf vendor
+	echo "### Go mod vendor ..."
+	go mod vendor
+	echo "### Compile the webhook ..."
 	CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
 
 build:
