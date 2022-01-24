@@ -7,9 +7,8 @@ OUT := $(shell pwd)/_out
 
 $(shell mkdir -p "$(OUT)")
 
-clean: clean-kubebuilder
-
-clean-kubebuilder:
+clean:
+	rm -rf vendor
 	rm -Rf $(OUT)/kubebuilder
 
 install-tools:
@@ -25,8 +24,6 @@ test: clean install-tools
 	TEST_ZONE_NAME=$(TEST_ZONE_NAME) go test .
 
 compile:
-	# go mod download -json
-	rm -rf vendor
 	echo "### Go mod vendor ..."
 	go mod vendor
 	echo "### Compile the webhook ..."
