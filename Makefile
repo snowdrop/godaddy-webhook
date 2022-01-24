@@ -7,11 +7,18 @@ OUT := $(shell pwd)/_out
 
 $(shell mkdir -p "$(OUT)")
 
-verify:
+clean: clean-kubebuilder
+
+clean-kubebuilder:
+	rm -Rf $(OUT)/kubebuilder
+
+install-tools:
 	sh ./scripts/fetch-test-binaries.sh
+
+verify: clean install-tools
 	go test -v .
 
-test:
+test: clean install-tools
 	TEST_ZONE_NAME=$(TEST_ZONE_NAME) go test .
 
 compile:
