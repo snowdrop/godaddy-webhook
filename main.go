@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
     "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -131,7 +132,7 @@ func (c *godaddyDNSSolver) apiURL(cfg godaddyDNSProviderConfig) string {
 func (c *godaddyDNSSolver) extractApiTokenFromSecret(cfg *godaddyDNSProviderConfig, ch *v1alpha1.ChallengeRequest) error {
 	sec, err := c.client.CoreV1().
 		Secrets(ch.ResourceNamespace).
-		Get(cfg.APIKeySecretRef.LocalObjectReference.Name, metaV1.GetOptions{})
+		Get(context.TODO(),cfg.APIKeySecretRef.LocalObjectReference.Name, metaV1.GetOptions{})
 	if err != nil {
 		return err
 	}
