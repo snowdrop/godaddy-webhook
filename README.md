@@ -1,5 +1,18 @@
 # ACME Webhook for GoDaddy
 
+Table of Contents
+=================
+
+  * [Installation](#installation)
+      * [Cert Manager](#cert-manager)
+      * [The Webhook](#the-webhook)
+  * [Issuer](#issuer)
+      * [Secret](#secret)
+      * [ClusterIssuer](#clusterissuer)
+  * [Development](#development)
+      * [Running the test suite](#running-the-test-suite)
+      * [Generate the container image](#generate-the-container-image)
+
 ## Installation
 
 ### Cert Manager
