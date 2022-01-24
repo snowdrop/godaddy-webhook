@@ -20,8 +20,7 @@ Table of Contents
 Follow the [instructions](https://cert-manager.io/docs/installation/) using the cert manager documentation to install it within your cluster.
 On kubernetes (>= 1.21), the process is pretty straightforward if you use the following commands:
 ```bash
-kubectl create ns cert-manager
-kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.12.0/cert-manager.yaml
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.yaml
 ```
 **NOTES**: Check the cert-manager releases note to verify which [version of certmanager](https://cert-manager.io/docs/installation/supported-releases/) is supported with Kubernetes or OpenShift
 ### The Webhook
@@ -195,6 +194,9 @@ Install a kube-apiserver, etcd locally using the following bash script
 Now, execute the test suite and pass as parameter the domain name to be tested
 
 ```bash
+TEST_ASSET_ETCD=_out/kubebuilder/bin/etcd \
+TEST_ASSET_KUBECTL=_out/kubebuilder/bin/kubectl \
+TEST_ASSET_KUBE_APISERVER=_out/kubebuilder/bin/kube-apiserver \
 TEST_ZONE_NAME=<YOUR_DOMAIN.NAME>. go test -v .
 ```
 
