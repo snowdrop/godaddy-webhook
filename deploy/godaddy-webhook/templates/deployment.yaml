@@ -28,12 +28,13 @@ spec:
           args:
             - --tls-cert-file=/tls/tls.crt
             - --tls-private-key-file=/tls/tls.key
+            - --secure-port={{ default 443 .Values.pod.securePort }}
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}
           ports:
             - name: https
-              containerPort: 443
+              containerPort: {{ default 443 .Values.pod.securePort }}
               protocol: TCP
           livenessProbe:
             httpGet:

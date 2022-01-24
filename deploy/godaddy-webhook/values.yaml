@@ -9,6 +9,9 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
+pod:
+  securePort:
+
 groupName: acme.mycompany.com
 
 certManager:
