@@ -5,18 +5,17 @@
 ### Cert Manager
 
 Follow the [instructions](https://cert-manager.io/docs/installation/) using the cert manager documentation to install it within your cluster.
-On kubernetes, the process is pretty straightforward if you use the following commands:
+On kubernetes (>= 1.21), the process is pretty straightforward if you use the following commands:
 ```bash
-kubectl create namespace cert-manager
+kubectl create ns cert-manager
 kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.12.0/cert-manager.yaml
 ```
-
+**NOTES**: Check the cert-manager releases note to verify which [version of certmanager](https://cert-manager.io/docs/installation/supported-releases/) is supported with Kubernetes or OpenShift
 ### The Webhook
 
-- Initialize first helm to install `Tiller` if not yet done and next install the helm chart
+- Install next the helm chart if [helm v3 is deployed](https://helm.sh/docs/intro/install/) on your machine
 ```bash
-$ helm init
-$ helm install --name godaddy-webhook --namespace cert-manager ./deploy/godaddy-webhook
+$ helm install -n cert-manager godaddy-webhook ./deploy/godaddy-webhook
 ```
 **NOTE** : The kubernetes resources used to install the Webhook should be deployed within the same namespace as the cert-manager.
 
@@ -124,7 +123,7 @@ kubectl apply -f certificate.yml -n <NAMESPACE>
 ```
 
 - If you have deployed a NGinx Ingress Controller on Kubernetes in order to route the trafic to your service
-  and to manage the TLS termination, then deploy the followiing ingress resource where 
+  and to manage the TLS termination, then deploy the following ingress resource where 
 
 ```yaml
 apiVersion: extensions/v1beta1
