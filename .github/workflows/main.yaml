@@ -1,0 +1,24 @@
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches:
+      - main
+jobs:
+  e2e_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build the webhook
+        run: |
+            go mod download
+            CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+# VERSION=$(git rev-parse --short HEAD 2>/dev/null)
+#              docker build -t cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
+#              TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${VERSION})
+#              docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
+#              docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:latest
+#              docker login quay.io -u="${QUAY_ROBOT_USER}" -p="${QUAY_ROBOT_TOKEN}"
+#              docker push quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
+#              docker push quay.io/snowdrop/cert-manager-webhook-godaddy:latest
