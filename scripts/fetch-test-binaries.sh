@@ -54,8 +54,7 @@ function fetch_kb_tools {
   tar -zvxf "$kb_tools_archive_path" -C "$tmp_root/"
 }
 
-header_text "using tools"
 fetch_kb_tools
 
-header_text "kubebuilder tools (etcd, kubectl, kube-apiserver)used to perform local tests installed under $tmp_root/kubebuilder/bin/"
+header_text "kubebuilder v$k8s_version tools (etcd, kubectl, kube-apiserver) used to perform local tests installed under $tmp_root/kubebuilder/bin/"
 exit 0
