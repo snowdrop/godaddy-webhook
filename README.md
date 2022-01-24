@@ -210,8 +210,13 @@ make compile
 IMAGE_REPOSITORY="quay.io/snowdrop"
 docker build -t ${IMAGE_REPOSITORY}/cert-manager-webhook-godaddy .
 ```
-**NOTE**: Change the `IMAGE_REGPOSITORY` to point to your container repository where you have access
-- Tag and push it
-```bash
+**NOTE**: Change the `IMAGE_REPOSITORY` to point to your container repository where you have access
 
+You can also use the `Makefile` to build/push the container image and pass as parameters the `IMAGE_NAME` and `IMAGE_TAG`. Without `IMAGE_TAG` defined,
+docker will tag/push as `latest`
+
+```bash
+IMAGE_REPOSITORY="quay.io/snowdrop"
+make build IMAGE_NAME=${IMAGE_REPOSITORY}
+make push
 ```

@@ -1,25 +1,15 @@
-FROM golang:1.12-alpine AS build_deps
+FROM golang:1.16-alpine AS builder
 
-RUN apk add --no-cache git bzr
-
-WORKDIR /workspace
-ENV GO111MODULE=on
-
-COPY go.mod .
-COPY go.sum .
-
+WORKDIR /go/src/webhook-app
+COPY . .
 RUN go mod download
 
-FROM build_deps AS build
+RUN CGO_ENABLED=0 go build -o /webhook-app -ldflags '-w -extldflags "-static"' .
 
-COPY . .
+FROM alpine:3
 
-RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+RUN apk add --no-cache git ca-certificates
 
-FROM alpine:3.9
-
-RUN apk add --no-cache ca-certificates
-
-COPY --from=build /workspace/webhook /usr/local/bin/webhook
+COPY --from=builder /webhook-app /usr/local/bin/webhook
 
 ENTRYPOINT ["webhook"]
