@@ -1,6 +1,6 @@
 module github.com/snowdrop/godaddy-webhook
 
-go 1.13
+go 1.16
 
 require (
 	github.com/jetstack/cert-manager v0.12.0
