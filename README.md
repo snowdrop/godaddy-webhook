@@ -70,7 +70,7 @@ EOF
 ```
 - Next, deploy it under the namespace where you would like to get your certificate/key signed by the ACME CA Authority
 ```bash
-kubectl appy -f secret.yml -n <NAMESPACE>
+kubectl apply -f secret.yml -n <NAMESPACE>
 ```
 
 ### ClusterIssuer
