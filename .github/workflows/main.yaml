@@ -30,8 +30,7 @@ jobs:
 
           TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${VERSION})
           docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
-          docker push quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
+          docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:latest
 
-# docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:latest
-# docker push quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
-# docker push quay.io/snowdrop/cert-manager-webhook-godaddy:latest
+          docker push quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
+          docker push quay.io/snowdrop/cert-manager-webhook-godaddy:latest
