@@ -103,3 +103,38 @@ rules:
       - 'secrets'
     verbs:
       - 'get'
+---
+# Grant cert-manager-webhook-gandi permission to read the flow control mechanism (APF)
+# API Priority and Fairness is enabled by default in Kubernetes 1.20
+# https://kubernetes.io/docs/concepts/cluster-administration/flow-control/
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "godaddy-webhook.fullname" . }}:flowcontrol-solver
+  labels:
+  {{ include "godaddy-webhook.labels" . | indent 4 }}
+rules:
+  - apiGroups:
+      - "flowcontrol.apiserver.k8s.io"
+    resources:
+      - "prioritylevelconfigurations"
+      - "flowschemas"
+    verbs:
+      - "list"
+      - "watch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "godaddy-webhook.fullname" . }}:flowcontrol-solver
+  labels:
+  {{ include "godaddy-webhook.labels" . | indent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "godaddy-webhook.fullname" . }}:flowcontrol-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: {{ include "godaddy-webhook.fullname" . }}
+    namespace: {{ .Release.Namespace }}

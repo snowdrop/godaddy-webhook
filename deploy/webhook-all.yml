@@ -108,7 +108,43 @@ subjects:
 - kind: ServiceAccount
   name: cert-manager
   namespace: cert-manager
-
+---
+# Grant cert-manager-webhook-gandi permission to read the flow control mechanism (APF)
+# API Priority and Fairness is enabled by default in Kubernetes 1.20
+# https://kubernetes.io/docs/concepts/cluster-administration/flow-control/
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: godaddy-webhook:flowcontrol-solver
+  labels:
+    app.kubernetes.io/name: godaddy-webhook
+    app.kubernetes.io/version: 0.1.1
+rules:
+  - apiGroups:
+      - "flowcontrol.apiserver.k8s.io"
+    resources:
+      - "prioritylevelconfigurations"
+      - "flowschemas"
+    verbs:
+      - "list"
+      - "watch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: godaddy-webhook:flowcontrol-solver
+  labels:
+    app.kubernetes.io/name: godaddy-webhook
+    app.kubernetes.io/version: 0.1.1
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: godaddy-webhook:flowcontrol-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: godaddy-webhook
+    namespace: cert-manager
 ---
 apiVersion: v1
 kind: Service
@@ -128,7 +164,6 @@ spec:
     app.kubernetes.io/name: godaddy-webhook
   sessionAffinity: None
   type: ClusterIP
-
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
