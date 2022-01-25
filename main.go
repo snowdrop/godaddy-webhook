@@ -6,30 +6,47 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
+	logrus "github.com/sirupsen/logrus"
+	"github.com/snowdrop/godaddy-webhook/common"
+	"github.com/snowdrop/godaddy-webhook/logging"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
 	certmgrv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
 
 	pkgutil "github.com/jetstack/cert-manager/pkg/util"
 )
 
-const providerName = "godaddy"
+const (
+	providerName        = "godaddy"
+	DefaultLevel        = "info"
+	DefaultLogTimestamp = false
+	DefaultLogFormat    = "color"
 
-// GroupName a API group name
-var GroupName = os.Getenv("GROUP_NAME")
+	LOGGING_LEVEL_ENV_NAME     = "LOGGING_LEVEL"
+	LOGGING_FORMAT_ENV_NAME    = "LOGGING_FORMAT"
+	LOGGING_TIMESTAMP_ENV_NAME = "LOGGING_TIMESTAMP"
+)
+
+var (
+	logLevel                string   // Log level (trace, debug, info, warn, error, fatal, panic)
+	logFormat               string   // Log format (text, color, json)
+	logTimestamp            bool     // Timestamp in log output
+	GroupName = os.Getenv("GROUP_NAME")
+)
 
 // DNSRecord a DNS record
 type DNSRecord struct {
@@ -43,6 +60,32 @@ type DNSRecord struct {
 func main() {
 	if GroupName == "" {
 		panic("GROUP_NAME must be specified")
+	}
+
+	logLevel = common.GetValFromEnVar(LOGGING_LEVEL_ENV_NAME)
+	if logLevel == "" {
+		logLevel = DefaultLevel
+	}
+
+	logFormat = common.GetValFromEnVar(LOGGING_FORMAT_ENV_NAME)
+	if logFormat == "" {
+		logFormat = DefaultLogFormat
+	}
+
+	loggingTimeStampStr := common.GetValFromEnVar(LOGGING_TIMESTAMP_ENV_NAME)
+	if loggingTimeStampStr == "" {
+		logTimestamp = DefaultLogTimestamp
+	} else {
+		v, err := strconv.ParseBool(loggingTimeStampStr)
+		if err != nil {
+			logrus.Fatalf("logTimestamp bool assignment failed %s", err)
+		} else {
+			logTimestamp = v
+		}
+	}
+
+	if err := logging.Configure(DefaultLevel, DefaultLogFormat, DefaultLogTimestamp); err != nil {
+		panic(err)
 	}
 
 	// This will register our godaddy DNS provider with the webhook serving
@@ -177,6 +220,7 @@ func (c *godaddyDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	baseURL := c.apiURL(cfg)
 
 	recordName := c.extractRecordName(ch.ResolvedFQDN, ch.ResolvedZone)
+	logrus.Infof("Record name of the TXT %s",recordName)
 
 	dnsZone, err := c.getZone(ch.ResolvedZone)
 	if err != nil {
@@ -280,6 +324,7 @@ func (c *godaddyDNSSolver) updateRecords(cfg godaddyDNSProviderConfig, baseURL s
 
 	var resp *http.Response
 	url := fmt.Sprintf("/v1/domains/%s/records/TXT/%s", domainZone, recordName)
+	logrus.Debugf("url request issued to check if the DNS record is present: %s",url)
 	resp, err = c.makeRequest(cfg, baseURL, http.MethodPut, url, bytes.NewReader(body))
 	if err != nil {
 		return err
@@ -290,6 +335,8 @@ func (c *godaddyDNSSolver) updateRecords(cfg godaddyDNSProviderConfig, baseURL s
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)
 		return fmt.Errorf("could not create record %v; Status: %v; Body: %s", string(body), resp.StatusCode, string(bodyBytes))
+	} else {
+		logrus.Debugf("Response received for TXT record: %s",resp.Body)
 	}
 	return nil
 }
@@ -334,4 +381,12 @@ func (c *godaddyDNSSolver) getZone(fqdn string) (string, error) {
 	}
 
 	return util.UnFqdn(authZone), nil
+}
+
+func (c *godaddyDNSSolver) getDomainAndEntry(ch *v1alpha1.ChallengeRequest) (string, string) {
+	// Both ch.ResolvedZone and ch.ResolvedFQDN end with a dot: '.'
+	entry := strings.TrimSuffix(ch.ResolvedFQDN, ch.ResolvedZone)
+	entry = strings.TrimSuffix(entry, ".")
+	domain := strings.TrimSuffix(ch.ResolvedZone, ".")
+	return entry, domain
 }
