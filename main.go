@@ -297,16 +297,6 @@ func (c *godaddyDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	}
 
 	return nil
-
-	/*	rec := []DNSRecord{
-			{
-				Type: "TXT",
-				Name: recordName,
-				Data: "null",
-			},
-		}
-
-		return c.updateRecords(cfg, rec, dnsZone, recordName)*/
 }
 
 // Initialize will be called when the webhook first starts.
