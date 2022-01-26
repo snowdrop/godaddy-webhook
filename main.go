@@ -42,10 +42,10 @@ const (
 )
 
 var (
-	logLevel                string   // Log level (trace, debug, info, warn, error, fatal, panic)
-	logFormat               string   // Log format (text, color, json)
-	logTimestamp            bool     // Timestamp in log output
-	GroupName = os.Getenv("GROUP_NAME")
+	logLevel     string // Log level (trace, debug, info, warn, error, fatal, panic)
+	logFormat    string // Log format (text, color, json)
+	logTimestamp bool   // Timestamp in log output
+	GroupName    = os.Getenv("GROUP_NAME")
 )
 
 // DNSRecord a DNS record
@@ -104,6 +104,7 @@ func main() {
 // interface.
 type godaddyDNSSolver struct {
 	client *kubernetes.Clientset
+	cfg    *godaddyDNSProviderConfig
 }
 
 // godaddyDNSProviderConfig is a structure that is used to decode into when
@@ -131,7 +132,7 @@ type godaddyDNSProviderConfig struct {
 	Production    bool   `json:"production"`
 
 	// +optional. The TTL of the TXT record used for the DNS challenge
-	TTL           int    `json:"ttl"`
+	TTL int `json:"ttl"`
 	// +optional.  API request timeout
 	HttpTimeout int `json:"timeout"`
 	// +optional.  Maximum waiting time for DNS propagation
@@ -164,7 +165,7 @@ func (c *godaddyDNSSolver) Name() string {
 // See - https://developer.godaddy.com/doc/endpoint/domains
 // OTE environment: https://api.ote-godaddy.com
 // PRODUCTION environment: https://api.godaddy.com
-func (c *godaddyDNSSolver) apiURL(cfg godaddyDNSProviderConfig) string {
+func (c *godaddyDNSSolver) apiURL(cfg *godaddyDNSProviderConfig) string {
 	baseURL := "https://api.ote-godaddy.com"
 	if cfg.Production {
 		baseURL = "https://api.godaddy.com"
@@ -175,7 +176,7 @@ func (c *godaddyDNSSolver) apiURL(cfg godaddyDNSProviderConfig) string {
 func (c *godaddyDNSSolver) extractApiTokenFromSecret(cfg *godaddyDNSProviderConfig, ch *v1alpha1.ChallengeRequest) error {
 	sec, err := c.client.CoreV1().
 		Secrets(ch.ResourceNamespace).
-		Get(context.TODO(),cfg.APIKeySecretRef.LocalObjectReference.Name, metaV1.GetOptions{})
+		Get(context.TODO(), cfg.APIKeySecretRef.LocalObjectReference.Name, metaV1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -207,38 +208,52 @@ func (c *godaddyDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	}
 
 	// Verify if the config contains the required parameters such as SecretRef
-	if err := c.validate(&cfg); err != nil {
+	if err := c.validate(cfg); err != nil {
 		return err
 	}
 
 	// Extract the Godaddy Api and Secret from the K8s Secret
 	// and assign it the AuthAPIKey and AuthAPISecret of the Config
-	if err := c.extractApiTokenFromSecret(&cfg, ch); err != nil {
+	if err := c.extractApiTokenFromSecret(cfg, ch); err != nil {
 		return err
 	}
 
-	baseURL := c.apiURL(cfg)
-
 	recordName := c.extractRecordName(ch.ResolvedFQDN, ch.ResolvedZone)
-	logrus.Infof("Record name of the TXT %s",recordName)
+	logrus.Infof("TXT Record name: %s", recordName)
 
 	dnsZone, err := c.getZone(ch.ResolvedZone)
 	if err != nil {
 		return err
 	}
 
-	rec := []DNSRecord{
-		{
-			Type: "TXT",
-			Name: recordName,
-			Data: ch.Key,
-			TTL:  cfg.TTL,
+	_, err = c.HasTXTRecord(cfg, dnsZone, recordName)
+	if err != nil {
+		return fmt.Errorf("Unable to check the TXT record: %v", err)
+	}
+
+	rec := []DNSRecord{{
+		Data: c.TXTRecordContent(ch.Key),
+		TTL: cfg.TTL,
+		Type: "TXT",
+		Name: recordName,
 		},
 	}
 
-	return c.updateRecords(cfg, baseURL, rec, dnsZone, recordName)
+	err = c.UpdateRecords(cfg, rec, dnsZone, recordName)
+	if err != nil {
+		return fmt.Errorf("Unable to create TXT record: %v", err)
+	}
+
+	return nil
 }
 
+func (c *godaddyDNSSolver) TXTRecordContent(key string) string {
+	if key != "" {
+		return key
+	} else {
+		return "null"
+	}
+}
 // CleanUp should delete the relevant TXT record from the DNS provider console.
 // If multiple TXT records exist with the same record name (e.g.
 // _acme-challenge.example.com) then **only** the record with the same `key`
@@ -252,34 +267,46 @@ func (c *godaddyDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	}
 
 	// Verify if the config contains the required parameters such as SecretRef
-	if err := c.validate(&cfg); err != nil {
+	if err := c.validate(cfg); err != nil {
 		return err
 	}
 
 	// Extract the Godaddy Api and Secret from the K8s Secret
 	// and assign it the AuthAPIKey and AuthAPISecret of the Config
-	if err := c.extractApiTokenFromSecret(&cfg, ch); err != nil {
+	if err := c.extractApiTokenFromSecret(cfg, ch); err != nil {
 		return err
 	}
 
-	baseURL := c.apiURL(cfg)
-
 	recordName := c.extractRecordName(ch.ResolvedFQDN, ch.ResolvedZone)
-
 	dnsZone, err := c.getZone(ch.ResolvedZone)
 	if err != nil {
 		return err
 	}
 
-	rec := []DNSRecord{
-		{
-			Type: "TXT",
-			Name: recordName,
-			Data: "null",
-		},
+	present, err := c.HasTXTRecord(cfg, dnsZone, recordName)
+	if err != nil {
+		return fmt.Errorf("Unable to check TXT record: %s", err)
 	}
 
-	return c.updateRecords(cfg, baseURL, rec, dnsZone, recordName)
+	if present {
+		logrus.Infof("Deleting entry=%s, domain=%s", recordName, dnsZone)
+		err := c.DeleteTxtRecord(cfg,dnsZone,recordName)
+		if err != nil {
+			return fmt.Errorf("Unable to delete the TXT record: %v", err)
+		}
+	}
+
+	return nil
+
+	/*	rec := []DNSRecord{
+			{
+				Type: "TXT",
+				Name: recordName,
+				Data: "null",
+			},
+		}
+
+		return c.updateRecords(cfg, rec, dnsZone, recordName)*/
 }
 
 // Initialize will be called when the webhook first starts.
@@ -303,8 +330,8 @@ func (c *godaddyDNSSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-ch
 
 // loadConfig is a small helper function that decodes JSON configuration into
 // the typed config struct.
-func loadConfig(cfgJSON *apiext.JSON) (godaddyDNSProviderConfig, error) {
-	cfg := godaddyDNSProviderConfig{}
+func loadConfig(cfgJSON *apiext.JSON) (*godaddyDNSProviderConfig, error) {
+	cfg := &godaddyDNSProviderConfig{}
 	// handle the 'base case' where no configuration has been provided
 	if cfgJSON == nil {
 		return cfg, nil
@@ -316,7 +343,34 @@ func loadConfig(cfgJSON *apiext.JSON) (godaddyDNSProviderConfig, error) {
 	return cfg, nil
 }
 
-func (c *godaddyDNSSolver) updateRecords(cfg godaddyDNSProviderConfig, baseURL string, records []DNSRecord, domainZone string, recordName string) error {
+func (c *godaddyDNSSolver) HasTXTRecord(cfg *godaddyDNSProviderConfig, domainZone string, recordName string) (bool, error) {
+	// curl -X GET -H "Authorization: sso-key $TOKEN"
+	// "https://api.godaddy.com/v1/domains/<DOMAIN>/records/TXT/<NAME>"
+	url := fmt.Sprintf("/v1/domains/%s/records/TXT/%s", domainZone, recordName)
+	logrus.Infof("### URL request issued to check if the TXT DNS record is present: %s", url)
+
+	resp, err := c.makeRequest(cfg, http.MethodGet, url, nil)
+	if err != nil {
+		return false, err
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return false, nil
+	} else if resp.StatusCode == http.StatusOK {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		logrus.Infof("### TXT Record found: %s", bodyBytes)
+		return true, nil
+	} else {
+		return false, fmt.Errorf("unexpected HTTP status: %d", resp.StatusCode)
+	}
+
+	return false, nil
+}
+
+// Function to be used to create/update a TXT record
+// Godaddy uses an array of DNS records as input !
+// See: https://developer.godaddy.com/doc/endpoint/domains#/v1/recordReplaceType
+func (c *godaddyDNSSolver) UpdateRecords(cfg *godaddyDNSProviderConfig, records []DNSRecord, domainZone string, recordName string) error {
 	body, err := json.Marshal(records)
 	if err != nil {
 		return err
@@ -324,8 +378,9 @@ func (c *godaddyDNSSolver) updateRecords(cfg godaddyDNSProviderConfig, baseURL s
 
 	var resp *http.Response
 	url := fmt.Sprintf("/v1/domains/%s/records/TXT/%s", domainZone, recordName)
-	logrus.Debugf("url request issued to check if the DNS record is present: %s",url)
-	resp, err = c.makeRequest(cfg, baseURL, http.MethodPut, url, bytes.NewReader(body))
+	logrus.Infof("### URL request issued to create/update the DNS record: %s", url)
+	logrus.Infof("### DNS record(s): %s", body)
+	resp, err = c.makeRequest(cfg, http.MethodPut, url, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -336,13 +391,35 @@ func (c *godaddyDNSSolver) updateRecords(cfg godaddyDNSProviderConfig, baseURL s
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)
 		return fmt.Errorf("could not create record %v; Status: %v; Body: %s", string(body), resp.StatusCode, string(bodyBytes))
 	} else {
-		logrus.Debugf("Response received for TXT record: %s",resp.Body)
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		logrus.Infof("### TXT record created/updated: %s", bodyBytes)
 	}
 	return nil
 }
 
-func (c *godaddyDNSSolver) makeRequest(cfg godaddyDNSProviderConfig, baseURL string, method string, uri string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", baseURL, uri), body)
+// Function to be used to delete a TXT record
+// See: https://developer.godaddy.com/doc/endpoint/domains#/v1/recordDeleteTypeName
+func (c *godaddyDNSSolver) DeleteTxtRecord(cfg *godaddyDNSProviderConfig, domainZone string, recordName string) error {
+	var resp *http.Response
+	url := fmt.Sprintf("/v1/domains/%s/records/TXT/%s", domainZone, recordName)
+	logrus.Infof("### url request issued to delete the DNS record: %s", url)
+
+	resp, err := c.makeRequest(cfg, http.MethodDelete, url, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed deleting TXT record: %v", err)
+	}
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	logrus.Infof("### TXT Record deleted: %s", bodyBytes)
+	return nil
+}
+
+func (c *godaddyDNSSolver) makeRequest(cfg *godaddyDNSProviderConfig, method string, uri string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", c.apiURL(cfg), uri), body)
 	if err != nil {
 		return nil, err
 	}
