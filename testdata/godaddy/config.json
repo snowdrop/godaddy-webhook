@@ -3,6 +3,5 @@
     "name": "godaddy-credentials",
     "key": "token"
   },
-  "production": true,
-  "ttl": 900
+  "production": true
 }
