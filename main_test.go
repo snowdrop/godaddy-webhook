@@ -17,14 +17,16 @@ func TestRunsSuite(t *testing.T) {
 	// ChallengeRequest passed as part of the test cases.
 
 	pollTime, _ := time.ParseDuration("5s")
-	timeOut, _ := time.ParseDuration("10m")
+	timeOut, _ := time.ParseDuration("3m")
 
 	fixture := dns.NewFixture(&godaddyDNSSolver{},
 		dns.SetResolvedZone(zone),
 		dns.SetAllowAmbientCredentials(false),
 		dns.SetManifestPath("testdata/godaddy"),
-		dns.SetStrict(true),
 		dns.SetUseAuthoritative(false),
+
+		// Disable the extended test as godaddy do not support to create several records for the same Record DNS Name !!
+		dns.SetStrict(false),
 
 		// Increase the poll interval to 10s
 		dns.SetPollInterval(pollTime),
