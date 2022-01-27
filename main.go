@@ -226,7 +226,8 @@ func (c *godaddyDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	_, err = c.HasTXTRecord(cfg, dnsZone, recordName)
+	logrus.Infof("### Try to present the DNS record with the DNS provider using as challengeKey: %s",ch.Key)
+	_, err = c.HasTXTRecord(cfg, dnsZone, recordName, ch.Key)
 	if err != nil {
 		return fmt.Errorf("Unable to check the TXT record: %v", err)
 	}
@@ -241,7 +242,7 @@ func (c *godaddyDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 
 	err = c.UpdateRecords(cfg, rec, dnsZone, recordName)
 	if err != nil {
-		return fmt.Errorf("Unable to create TXT record: %v", err)
+		return fmt.Errorf("### Unable to create TXT record: %v", err)
 	}
 
 	return nil
@@ -283,16 +284,17 @@ func (c *godaddyDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	present, err := c.HasTXTRecord(cfg, dnsZone, recordName)
+	logrus.Infof("### CleanUp should delete the relevant TXT record for the challengeKey: %s",ch.Key)
+	present, err := c.HasTXTRecord(cfg, dnsZone, recordName, ch.Key)
 	if err != nil {
-		return fmt.Errorf("Unable to check TXT record: %s", err)
+		return fmt.Errorf("### Unable to check TXT record: %s", err)
 	}
 
 	if present {
-		logrus.Infof("Deleting entry=%s, domain=%s", recordName, dnsZone)
+		logrus.Infof("### Deleting entry=%s, domain=%s", recordName, dnsZone)
 		err := c.DeleteTxtRecord(cfg,dnsZone,recordName)
 		if err != nil {
-			return fmt.Errorf("Unable to delete the TXT record: %v", err)
+			return fmt.Errorf("### Unable to delete the TXT record: %v", err)
 		}
 	}
 
@@ -333,7 +335,7 @@ func loadConfig(cfgJSON *apiext.JSON) (*godaddyDNSProviderConfig, error) {
 	return cfg, nil
 }
 
-func (c *godaddyDNSSolver) HasTXTRecord(cfg *godaddyDNSProviderConfig, domainZone string, recordName string) (bool, error) {
+func (c *godaddyDNSSolver) HasTXTRecord(cfg *godaddyDNSProviderConfig, domainZone string, recordName string, challengeKey string) (bool, error) {
 	// curl -X GET -H "Authorization: sso-key $TOKEN"
 	// "https://api.godaddy.com/v1/domains/<DOMAIN>/records/TXT/<NAME>"
 	url := fmt.Sprintf("/v1/domains/%s/records/TXT/%s", domainZone, recordName)
@@ -347,11 +349,28 @@ func (c *godaddyDNSSolver) HasTXTRecord(cfg *godaddyDNSProviderConfig, domainZon
 	if resp.StatusCode == http.StatusNotFound {
 		return false, nil
 	} else if resp.StatusCode == http.StatusOK {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		logrus.Infof("### TXT Record found: %s", bodyBytes)
-		return true, nil
+		var dnsRecords = []DNSRecord{}
+		err = json.NewDecoder(resp.Body).Decode(&dnsRecords)
+		if err != nil {
+			return false, fmt.Errorf("### HTTP response body cannot be parsed to JSON: %s", err)
+		}
+
+		if (len(dnsRecords) == 0) {
+			logrus.Info("### No TXT Record found using godaddy REST API !")
+			return false, nil
+		} else {
+			for _, dnsRecord := range dnsRecords {
+				logrus.Infof("### TXT Record collected from godaddy: %#v", dnsRecord)
+				if (dnsRecord.Data == challengeKey) {
+					logrus.Infof("### TXT Record found : %#v, for challengeKey: %s", dnsRecord,challengeKey)
+					return true, nil
+				}
+			}
+			logrus.Infof("### No TXT Record found within the response for challengeKey: %s",challengeKey)
+			return false, nil
+		}
 	} else {
-		return false, fmt.Errorf("unexpected HTTP status: %d", resp.StatusCode)
+		return false, fmt.Errorf("### Unexpected HTTP status: %d", resp.StatusCode)
 	}
 
 	return false, nil
@@ -379,10 +398,9 @@ func (c *godaddyDNSSolver) UpdateRecords(cfg *godaddyDNSProviderConfig, records 
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("could not create record %v; Status: %v; Body: %s", string(body), resp.StatusCode, string(bodyBytes))
+		return fmt.Errorf("### Could not create record %v; Status: %v; Body: %s", string(body), resp.StatusCode, string(bodyBytes))
 	} else {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		logrus.Infof("### TXT record created/updated: %s", bodyBytes)
+		logrus.Info("### TXT record created/updated using godaddy REST API !")
 	}
 	return nil
 }
@@ -392,7 +410,7 @@ func (c *godaddyDNSSolver) UpdateRecords(cfg *godaddyDNSProviderConfig, records 
 func (c *godaddyDNSSolver) DeleteTxtRecord(cfg *godaddyDNSProviderConfig, domainZone string, recordName string) error {
 	var resp *http.Response
 	url := fmt.Sprintf("/v1/domains/%s/records/TXT/%s", domainZone, recordName)
-	logrus.Infof("### url request issued to delete the DNS record: %s", url)
+	logrus.Infof("### URL request issued to delete the DNS record: %s", url)
 
 	resp, err := c.makeRequest(cfg, http.MethodDelete, url, nil)
 	if err != nil {
@@ -401,10 +419,9 @@ func (c *godaddyDNSSolver) DeleteTxtRecord(cfg *godaddyDNSProviderConfig, domain
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("failed deleting TXT record: %v", err)
+		return fmt.Errorf("### Failed deleting TXT record: %v, status of the response: %d", err,resp.StatusCode)
 	}
-	bodyBytes, _ := ioutil.ReadAll(resp.Body)
-	logrus.Infof("### TXT Record deleted: %s", bodyBytes)
+	logrus.Infof("### TXT Record deleted using Godaddy REST API")
 	return nil
 }
 
