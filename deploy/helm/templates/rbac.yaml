@@ -112,7 +112,7 @@ kind: ClusterRole
 metadata:
   name: {{ include "godaddy-webhook.fullname" . }}:flowcontrol-solver
   labels:
-  {{ include "godaddy-webhook.labels" . | indent 4 }}
+{{ include "godaddy-webhook.labels" . | indent 4 }}
 rules:
   - apiGroups:
       - "flowcontrol.apiserver.k8s.io"
@@ -128,7 +128,7 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ include "godaddy-webhook.fullname" . }}:flowcontrol-solver
   labels:
-  {{ include "godaddy-webhook.labels" . | indent 4 }}
+{{ include "godaddy-webhook.labels" . | indent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
