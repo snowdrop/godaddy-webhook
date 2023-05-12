@@ -1,0 +1,16 @@
+{
+    "name": "go",
+    "dockerFile": "Dockerfile",
+    "context": ".",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.go",
+                "ms-vscode.makefile-tools",
+                "github.copilot",
+                "github.vscode-github-actions",
+                "shardulm94.trailing-spaces"
+            ]
+        }
+    }
+}

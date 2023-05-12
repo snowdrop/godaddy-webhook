@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cert-manager/cert-manager/pkg/issuer/acme/dns/util"
 
 	logrus "github.com/sirupsen/logrus"
 	"github.com/snowdrop/godaddy-webhook/common"
@@ -23,11 +24,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
-	certmgrv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
+	certmgrv1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 
-	pkgutil "github.com/jetstack/cert-manager/pkg/util"
+	pkgutil "github.com/cert-manager/cert-manager/pkg/util"
 )
 
 const (
@@ -100,7 +101,7 @@ func main() {
 
 // godaddyDNSSolver implements the provider-specific logic needed to
 // 'present' an ACME challenge TXT record for your own DNS provider.
-// To do so, it must implement the `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver`
+// To do so, it must implement the `github.com/cert-manager/cert-manager/pkg/acme/webhook.Solver`
 // interface.
 type godaddyDNSSolver struct {
 	client *kubernetes.Clientset
@@ -226,7 +227,7 @@ func (c *godaddyDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	logrus.Infof("### Try to present the DNS record with the DNS provider using as challengeKey: %s",ch.Key)
+	logrus.Infof("### Try to present the DNS record with the DNS provider using as challengeKey: %s", ch.Key)
 	_, err = c.HasTXTRecord(cfg, dnsZone, recordName, ch.Key)
 	if err != nil {
 		return fmt.Errorf("Unable to check the TXT record: %v", err)
@@ -234,10 +235,10 @@ func (c *godaddyDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 
 	rec := []DNSRecord{{
 		Data: c.TXTRecordContent(ch.Key),
-		TTL: cfg.TTL,
+		TTL:  cfg.TTL,
 		Type: "TXT",
 		Name: recordName,
-		},
+	},
 	}
 
 	err = c.UpdateRecords(cfg, rec, dnsZone, recordName)
@@ -255,6 +256,7 @@ func (c *godaddyDNSSolver) TXTRecordContent(key string) string {
 		return "null"
 	}
 }
+
 // CleanUp should delete the relevant TXT record from the DNS provider console.
 // If multiple TXT records exist with the same record name (e.g.
 // _acme-challenge.example.com) then **only** the record with the same `key`
@@ -284,7 +286,7 @@ func (c *godaddyDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	logrus.Infof("### CleanUp should delete the relevant TXT record for the challengeKey: %s",ch.Key)
+	logrus.Infof("### CleanUp should delete the relevant TXT record for the challengeKey: %s", ch.Key)
 	present, err := c.HasTXTRecord(cfg, dnsZone, recordName, ch.Key)
 	if err != nil {
 		return fmt.Errorf("### Unable to check TXT record: %s", err)
@@ -292,7 +294,7 @@ func (c *godaddyDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 
 	if present {
 		logrus.Infof("### Deleting entry=%s, domain=%s", recordName, dnsZone)
-		err := c.DeleteTxtRecord(cfg,dnsZone,recordName)
+		err := c.DeleteTxtRecord(cfg, dnsZone, recordName)
 		if err != nil {
 			return fmt.Errorf("### Unable to delete the TXT record: %v", err)
 		}
@@ -355,18 +357,18 @@ func (c *godaddyDNSSolver) HasTXTRecord(cfg *godaddyDNSProviderConfig, domainZon
 			return false, fmt.Errorf("### HTTP response body cannot be parsed to JSON: %s", err)
 		}
 
-		if (len(dnsRecords) == 0) {
+		if len(dnsRecords) == 0 {
 			logrus.Info("### No TXT Record found using godaddy REST API !")
 			return false, nil
 		} else {
 			for _, dnsRecord := range dnsRecords {
 				logrus.Infof("### TXT Record collected from godaddy: %#v", dnsRecord)
-				if (dnsRecord.Data == challengeKey) {
-					logrus.Infof("### TXT Record found : %#v, for challengeKey: %s", dnsRecord,challengeKey)
+				if dnsRecord.Data == challengeKey {
+					logrus.Infof("### TXT Record found : %#v, for challengeKey: %s", dnsRecord, challengeKey)
 					return true, nil
 				}
 			}
-			logrus.Infof("### No TXT Record found within the response for challengeKey: %s",challengeKey)
+			logrus.Infof("### No TXT Record found within the response for challengeKey: %s", challengeKey)
 			return false, nil
 		}
 	} else {
@@ -419,7 +421,7 @@ func (c *godaddyDNSSolver) DeleteTxtRecord(cfg *godaddyDNSProviderConfig, domain
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("### Failed deleting TXT record: %v, status of the response: %d", err,resp.StatusCode)
+		return fmt.Errorf("### Failed deleting TXT record: %v, status of the response: %d", err, resp.StatusCode)
 	}
 	logrus.Infof("### TXT Record deleted using Godaddy REST API")
 	return nil
@@ -432,7 +434,7 @@ func (c *godaddyDNSSolver) makeRequest(cfg *godaddyDNSProviderConfig, method str
 	}
 
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", pkgutil.CertManagerUserAgent)
+	req.Header.Set("User-Agent", "cert-manager/"+pkgutil.AppVersion)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("sso-key %s:%s", cfg.AuthAPIKey, cfg.AuthAPISecret))
 

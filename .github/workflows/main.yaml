@@ -4,33 +4,48 @@ on:
   push:
     branches:
       - main
+    tags:
+      - v*
+
+env:
+  IMAGE_NAME: cert-manager-webhook-godaddy
+
 jobs:
-  e2e_test:
+  push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Install go 1.16
+      - name: Install go 1.20
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.20
 
-      - name: Login to Quay.io Hub
-        uses: docker/login-action@v1
-        with:
-          registry: quay.io
-          username: ${{ secrets.QUAY_ROBOT_USER }}
-          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+      - name: Build image
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME
 
-      - name: Build the container image
+      - name: Log into registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+
+      - name: Push image
         run: |
-          VERSION=$(git rev-parse --short HEAD 2>/dev/null)
-          docker build -t cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
+          IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
 
-          TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${VERSION})
-          docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
-          docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:latest
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
-          docker push quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
-          docker push quay.io/snowdrop/cert-manager-webhook-godaddy:latest
+          # Strip git ref prefix from version
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+          # Strip "v" prefix from tag name
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+          # Use Docker `latest` tag convention
+          [ "$VERSION" == "main" ] && VERSION=latest
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+
+          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:$VERSION
