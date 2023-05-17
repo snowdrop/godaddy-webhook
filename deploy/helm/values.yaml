@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: quay.io/snowdrop/cert-manager-webhook-godaddy
+  repository: ghcr.io/hof/godaddy-webhook/godaddy-webhook
   tag: latest
   pullPolicy: IfNotPresent
 
