@@ -260,7 +260,7 @@ spec:
         env:
         - name: GROUP_NAME
           value: acme.mycompany.com
-        image: quay.io/snowdrop/cert-manager-webhook-godaddy:latest
+        image: ghcr.io/hof/godaddy-webhook/godaddy-webhook:latest
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
