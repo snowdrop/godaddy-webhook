@@ -2,7 +2,7 @@
 
 set -e
 
-k8s_version=1.22.1
+k8s_version=1.27.1
 goarch=amd64
 goos="unknown"
 

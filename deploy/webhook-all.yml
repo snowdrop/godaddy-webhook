@@ -1,124 +1,69 @@
 ---
+# Source: godaddy-webhook/templates/rbac.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: release-name-godaddy-webhook
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook
-  namespace: cert-manager
-
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
 ---
+# Source: godaddy-webhook/templates/rbac.yaml
+# Grant cert-manager permission to validate using our apiserver
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: release-name-godaddy-webhook:domain-solver
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups:
-      - ""
+      - acme.mycompany.com
     resources:
-      - secrets
+      - '*'
     verbs:
-      - get
-
+      - 'create'
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: godaddy-webhook
-subjects:
-  - kind: ServiceAccount
-    name: godaddy-webhook
-    namespace: cert-manager
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook:webhook-authentication-reader
-  namespace: kube-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: extension-apiserver-authentication-reader
-subjects:
-- kind: ServiceAccount
-  name: godaddy-webhook
-  namespace: cert-manager
-
----
+# Source: godaddy-webhook/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: release-name-godaddy-webhook
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook:domain-solver
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
 rules:
-- apiGroups:
-  - acme.mycompany.com
-  resources:
-  - '*'
-  verbs:
-  - create
-
+  - apiGroups:
+      - ''
+    resources:
+      - 'secrets'
+    verbs:
+      - 'get'
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook:auth-delegator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: system:auth-delegator
-subjects:
-- kind: ServiceAccount
-  name: godaddy-webhook
-  namespace: cert-manager
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook:domain-solver
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: godaddy-webhook:domain-solver
-subjects:
-- kind: ServiceAccount
-  name: cert-manager
-  namespace: cert-manager
----
-# Grant cert-manager-webhook-godaddy permission to read the flow control mechanism (APF)
+# Source: godaddy-webhook/templates/rbac.yaml
+# Grant cert-manager-webhook-gandi permission to read the flow control mechanism (APF)
 # API Priority and Fairness is enabled by default in Kubernetes 1.20
 # https://kubernetes.io/docs/concepts/cluster-administration/flow-control/
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: godaddy-webhook:flowcontrol-solver
+  name: release-name-godaddy-webhook:flowcontrol-solver
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups:
       - "flowcontrol.apiserver.k8s.io"
@@ -129,197 +74,295 @@ rules:
       - "list"
       - "watch"
 ---
+# Source: godaddy-webhook/templates/rbac.yaml
+# apiserver gets the auth-delegator role to delegate auth decisions to
+# the core apiserver
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: godaddy-webhook:flowcontrol-solver
+  name: release-name-godaddy-webhook:auth-delegator
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: godaddy-webhook:flowcontrol-solver
+  name: system:auth-delegator
 subjects:
   - apiGroup: ""
     kind: ServiceAccount
-    name: godaddy-webhook
+    name: release-name-godaddy-webhook
+    namespace: default
+---
+# Source: godaddy-webhook/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: release-name-godaddy-webhook:domain-solver
+  labels:
+    app.kubernetes.io/name: godaddy-webhook
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: release-name-godaddy-webhook:domain-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager
     namespace: cert-manager
 ---
+# Source: godaddy-webhook/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: release-name-godaddy-webhook
+  labels:
+    app.kubernetes.io/name: godaddy-webhook
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: release-name-godaddy-webhook
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: release-name-godaddy-webhook
+    namespace: default
+---
+# Source: godaddy-webhook/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: release-name-godaddy-webhook:flowcontrol-solver
+  labels:
+    app.kubernetes.io/name: godaddy-webhook
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: release-name-godaddy-webhook:flowcontrol-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: release-name-godaddy-webhook
+    namespace: default
+---
+# Source: godaddy-webhook/templates/rbac.yaml
+# Grant the webhook permission to read the ConfigMap containing the Kubernetes
+# apiserver's requestheader-ca-certificate.
+# This ConfigMap is automatically created by the Kubernetes apiserver.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: release-name-godaddy-webhook:webhook-authentication-reader
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: godaddy-webhook
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: release-name-godaddy-webhook
+    namespace: default
+---
+# Source: godaddy-webhook/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
+  name: release-name-godaddy-webhook
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook
-  namespace: cert-manager
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
 spec:
+  type: ClusterIP
   ports:
-  - name: https
-    port: 443
-    protocol: TCP
-    targetPort: https
+    - port: 443
+      targetPort: https
+      protocol: TCP
+      name: https
   selector:
     app.kubernetes.io/name: godaddy-webhook
-  sessionAffinity: None
-  type: ClusterIP
+    app.kubernetes.io/instance: release-name
 ---
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  labels:
-    app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook-ca
-  namespace: cert-manager
-spec:
-  ca:
-    secretName: godaddy-webhook-ca
-
----
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  labels:
-    app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook-selfsign
-  namespace: cert-manager
-spec:
-  selfSigned: {}
-
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  labels:
-    app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook-ca
-  namespace: cert-manager
-spec:
-  commonName: ca.godaddy-webhook.cert-manager
-  duration: 43800h0m0s
-  isCA: true
-  issuerRef:
-    name: godaddy-webhook-selfsign
-  secretName: godaddy-webhook-ca
-
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  labels:
-    app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook-webhook-tls
-  namespace: cert-manager
-spec:
-  dnsNames:
-  - godaddy-webhook
-  - godaddy-webhook.cert-manager
-  - godaddy-webhook.cert-manager.svc
-  duration: 8760h0m0s
-  issuerRef:
-    name: godaddy-webhook-ca
-  secretName: godaddy-webhook-webhook-tls
-
----
+# Source: godaddy-webhook/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: release-name-godaddy-webhook
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: godaddy-webhook
-  namespace: cert-manager
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
 spec:
-  progressDeadlineSeconds: 600
   replicas: 1
-  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app.kubernetes.io/name: godaddy-webhook
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
+      app.kubernetes.io/instance: release-name
   template:
     metadata:
-      creationTimestamp: null
       labels:
-        app.kubernetes.io/instance: godaddy-webhook
         app.kubernetes.io/name: godaddy-webhook
+        app.kubernetes.io/instance: release-name
     spec:
+      serviceAccountName: release-name-godaddy-webhook
       containers:
-      - args:
-        - --tls-cert-file=/tls/tls.crt
-        - --tls-private-key-file=/tls/tls.key
-        env:
-        - name: GROUP_NAME
-          value: acme.mycompany.com
-        image: ghcr.io/hof/godaddy-webhook/godaddy-webhook:latest
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /healthz
-            port: https
-            scheme: HTTPS
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
-        name: godaddy-webhook
-        ports:
-        - containerPort: 443
-          name: https
-          protocol: TCP
-        readinessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /healthz
-            port: https
-            scheme: HTTPS
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
-        resources: {}
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
-        volumeMounts:
-        - mountPath: /tls
-          name: certs
-          readOnly: true
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      serviceAccount: godaddy-webhook
-      serviceAccountName: godaddy-webhook
-      terminationGracePeriodSeconds: 30
+        - name: godaddy-webhook
+          image: "ghcr.io/hof/godaddy-webhook/godaddy-webhook:latest"
+          imagePullPolicy: Always
+          args:
+            - --tls-cert-file=/tls/tls.crt
+            - --tls-private-key-file=/tls/tls.key
+            - --secure-port=443
+          env:
+            - name: GROUP_NAME
+              value: "acme.mycompany.com"
+          ports:
+            - name: https
+              containerPort: 443
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: https
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: https
+          volumeMounts:
+            - name: certs
+              mountPath: /tls
+              readOnly: true
+          resources:
+            {}
       volumes:
-      - name: certs
-        secret:
-          defaultMode: 420
-          secretName: godaddy-webhook-webhook-tls
-
+        - name: certs
+          secret:
+            secretName: release-name-godaddy-webhook-webhook-tls
 ---
+# Source: godaddy-webhook/templates/apiservice.yaml
 apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
-  annotations:
-    cert-manager.io/inject-ca-from: cert-manager/godaddy-webhook-webhook-tls
+  name: v1alpha1.acme.mycompany.com
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
-  name: v1alpha1.acme.mycompany.com
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    cert-manager.io/inject-ca-from: "default/release-name-godaddy-webhook-webhook-tls"
 spec:
   group: acme.mycompany.com
   groupPriorityMinimum: 1000
-  service:
-    name: godaddy-webhook
-    namespace: cert-manager
-  version: v1alpha1
   versionPriority: 15
+  service:
+    name: release-name-godaddy-webhook
+    namespace: default
+  version: v1alpha1
+---
+# Source: godaddy-webhook/templates/pki.yaml
+# Generate a CA Certificate used to sign certificates for the webhook
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: release-name-godaddy-webhook-ca
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: godaddy-webhook
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  secretName: release-name-godaddy-webhook-ca
+  duration: 43800h # 5y
+  issuerRef:
+    name: release-name-godaddy-webhook-selfsign
+  commonName: "ca.godaddy-webhook.cert-manager"
+  isCA: true
+---
+# Source: godaddy-webhook/templates/pki.yaml
+# Finally, generate a serving certificate for the webhook to use
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: release-name-godaddy-webhook-webhook-tls
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: godaddy-webhook
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  secretName: release-name-godaddy-webhook-webhook-tls
+  duration: 8760h # 1y
+  issuerRef:
+    name: release-name-godaddy-webhook-ca
+  dnsNames:
+  - release-name-godaddy-webhook
+  - release-name-godaddy-webhook.default
+  - release-name-godaddy-webhook.default.svc
+---
+# Source: godaddy-webhook/templates/pki.yaml
+# Create a selfsigned Issuer, in order to create a root CA certificate for
+# signing webhook serving certificates
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: release-name-godaddy-webhook-selfsign
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: godaddy-webhook
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selfSigned: {}
+---
+# Source: godaddy-webhook/templates/pki.yaml
+# Create an Issuer that uses the above generated CA certificate to issue certs
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: release-name-godaddy-webhook-ca
+  namespace: "default"
+  labels:
+    app.kubernetes.io/name: godaddy-webhook
+    helm.sh/chart: godaddy-webhook-0.1.0
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "0.1.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ca:
+    secretName: release-name-godaddy-webhook-ca

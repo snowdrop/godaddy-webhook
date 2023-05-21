@@ -162,7 +162,11 @@ func (c *godaddyDNSSolver) Name() string {
 	return providerName
 }
 
-// Return GoDaddi API URL to query the API domains
+//func (c *godaddyDNSSolver) GetSingularName() string {
+//	return fmt.Sprintf("%s/%s", GroupName, providerName)
+//}
+
+// Return GoDaddy API URL to query the API domains
 // See - https://developer.godaddy.com/doc/endpoint/domains
 // OTE environment: https://api.ote-godaddy.com
 // PRODUCTION environment: https://api.godaddy.com
@@ -374,8 +378,6 @@ func (c *godaddyDNSSolver) HasTXTRecord(cfg *godaddyDNSProviderConfig, domainZon
 	} else {
 		return false, fmt.Errorf("### Unexpected HTTP status: %d", resp.StatusCode)
 	}
-
-	return false, nil
 }
 
 // Function to be used to create/update a TXT record
