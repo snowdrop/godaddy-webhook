@@ -162,10 +162,6 @@ func (c *godaddyDNSSolver) Name() string {
 	return providerName
 }
 
-func (c *godaddyDNSSolver) GetSingularName() string {
-	return fmt.Sprintf("%s/%s", GroupName, providerName)
-}
-
 // Return GoDaddy API URL to query the API domains
 // See - https://developer.godaddy.com/doc/endpoint/domains
 // OTE environment: https://api.ote-godaddy.com
