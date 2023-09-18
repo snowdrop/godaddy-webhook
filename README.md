@@ -81,7 +81,7 @@ kubectl apply -f secret.yml -n <NAMESPACE>
 
 ```yaml
 cat <<EOF > clusterissuer.yml 
-EOF apiVersion: cert-manager.io/v1
+apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
