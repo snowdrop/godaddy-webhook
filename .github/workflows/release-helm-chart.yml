@@ -27,6 +27,6 @@ jobs:
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.5.0
         with:
-          charts_dir: ./deploy/helm
+          charts_dir: deploy/charts
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

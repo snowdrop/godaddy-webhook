@@ -27,17 +27,17 @@ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6
 
 - Install next the helm chart if [helm v3 is deployed](https://helm.sh/docs/intro/install/) on your machine
 ```bash
-helm install -n cert-manager godaddy-webhook ./deploy/helm
+helm install -n cert-manager godaddy-webhook ./deploy/charts/godaddy-webhook
 ```
 **NOTE**: The kubernetes resources used to install the Webhook should be deployed within the same namespace as the cert-manager.
 
 - To change one of the values, create a `my-values.yml` file or set the value(s) using helm's `--set` argument:
 ```bash
-helm install -n cert-manager godaddy-webhook -f my-values.yml ./deploy/helm
+helm install -n cert-manager godaddy-webhook -f my-values.yml ./deploy/charts/godaddy-webhook
 
 or
 
-helm install -n cert-manager godaddy-webhook --set pod.securePort=8443 ./deploy/helm
+helm install -n cert-manager godaddy-webhook --set pod.securePort=8443 ./deploy/charts/godaddy-webhook
 ```
 
 - To uninstall the webhook:
