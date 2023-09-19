@@ -33,12 +33,16 @@ helm install -n cert-manager godaddy-webhook ./deploy/helm
 
 - To change one of the values, create a `my-values.yml` file or set the value(s) using helm's `--set` argument:
 ```bash
+helm install -n cert-manager godaddy-webhook -f my-values.yml ./deploy/helm
+
+or
+
 helm install -n cert-manager godaddy-webhook --set pod.securePort=8443 ./deploy/helm
 ```
 
 - To uninstall the webhook:
 ```bash
-$ helm delete godaddy-webhook -n cert-manager
+$ helm uninstall godaddy-webhook -n cert-manager
 ```
 
 - Alternatively, you can install the webhook using the kubernetes YAML resources. The namespace
