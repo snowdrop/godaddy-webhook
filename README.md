@@ -5,7 +5,9 @@ Table of Contents
 
   * [Installation](#installation)
       * [Cert Manager](#cert-manager)
-      * [The Webhook](#the-webhook)
+  * [The Godaddy webhook](#the-godaddy-webhook)
+      * [Helm deployment](#helm-deployment)
+      * [Manual installation](#manual-installation)
   * [Issuer](#issuer)
       * [Secret](#secret)
       * [ClusterIssuer](#clusterissuer)
@@ -23,9 +25,12 @@ On kubernetes (>= 1.21), the process is pretty straightforward if you use the fo
 kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.yaml
 ```
 **NOTES**: Check the cert-manager releases note to verify which [version of certmanager](https://cert-manager.io/docs/installation/supported-releases/) is supported with Kubernetes or OpenShift
-### The Webhook
 
-- Install next the helm chart if [helm v3 is deployed](https://helm.sh/docs/intro/install/) on your machine
+### The Godaddy webhook
+
+#### Helm deployment
+
+When the cert-manager has been installed, deploy the helm chart on your machine using this command:
 ```bash
 helm install -n cert-manager godaddy-webhook ./deploy/charts/godaddy-webhook
 ```
@@ -40,12 +45,20 @@ or
 helm install -n cert-manager godaddy-webhook --set pod.securePort=8443 ./deploy/charts/godaddy-webhook
 ```
 
+You can also use the Helm chart published on gh-pages
+```bash
+helm repo add godaddy-webhook https://snowdrop.github.io/godaddy-webhook
+helm install acme-webhook godaddy-webhook/godaddy-webhook -n cert-manager
+...
+
 - To uninstall the webhook:
 ```bash
-$ helm uninstall godaddy-webhook -n cert-manager
+helm uninstall acme-webhook -n cert-manager
 ```
 
-- Alternatively, you can install the webhook using the kubernetes YAML resources. The namespace
+#### Manual installation
+
+Alternatively, you can install the webhook using the kubernetes YAML resources. The namespace
   where the resources should be installed is: `cert-manager`
 ```bash
  kubectl apply -f deploy/webhook-all.yml --validate=false
