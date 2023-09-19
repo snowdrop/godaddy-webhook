@@ -2,7 +2,7 @@ FROM golang:1.16-alpine AS builder
 
 WORKDIR /go/src/webhook-app
 COPY . .
-RUN go mod download
+RUN --mount=type=cache,target=$HOME/go/pkg/mod go mod download
 
 RUN CGO_ENABLED=0 go build -o /webhook-app -ldflags '-w -extldflags "-static"' .
 
