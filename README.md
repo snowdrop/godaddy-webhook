@@ -82,7 +82,7 @@ metadata:
   name: godaddy-api-key
 type: Opaque
 stringData:
-  token: <GODADDY_API:GODADDY_SECRET>
+  token: <GODADDY_API_KEY:GODADDY_SECRET_KEY>
 EOF
 ```
 - Next, deploy it under the namespace where you would like to get your certificate/key signed by the ACME CA Authority
@@ -195,11 +195,11 @@ kubectl apply -f ingress.yml -n <NAMESPACE>
 **IMPORTANT**: Use the tetsuite carefully and do not launch it too much times as the DNS servers could fail and report such a message `suite.go:62: error waiting for record to be deleted: unexpected error from DNS server: SERVFAIL`
 
 To test one of your registered domains on godaddy, create a secret.yml file using as [example] file(./testdata/godaddy/godaddy.secret.example)
-Replace the `$GODADDY_TOKEN` with your Godaddy API token which corresponds to your `<GODADDY_KEY>:<GODADDY_SECRET>`:
+Replace the `$GODADDY_TOKEN` with your Godaddy API token which corresponds to your `<GODADDY_API_KEY>:<GODADDY_SECRET_KEY>`:
 
 ```bash
 pushd testdata/godaddy
-export GODADDY_TOKEN=$(echo -n "<GODADDY_KEY:GODADDY_SECRET>")
+export GODADDY_TOKEN=$(echo -n "<GODADDY_API_KEY:GODADDY_SECRET_KEY>")
 envsubst < godaddy.secret.example > secret.yaml
 popd
 ```
