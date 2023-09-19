@@ -1,3 +1,4 @@
+name: Build and push godaddy webhook image
 on:
   pull_request:
     branches: [ main ]
