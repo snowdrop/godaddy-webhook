@@ -5,7 +5,7 @@ on:
     branches:
       - main
 jobs:
-  e2e_test:
+  build_push_image:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
