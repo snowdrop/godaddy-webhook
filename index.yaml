@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  godaddy-webhook:
+  - apiVersion: v1
+    appVersion: 0.1.1
+    created: "2023-09-19T13:27:23.329458336Z"
+    description: Cert Manager godaddy webhook Helm chart
+    digest: 6c386d3067693e192b6280b89836d761727175ab7a8e9fc6472265d25a0d4085
+    name: godaddy-webhook
+    urls:
+    - https://github.com/snowdrop/godaddy-webhook/releases/download/godaddy-webhook-0.1.0/godaddy-webhook-0.1.0.tgz
+    version: 0.1.0
+generated: "2023-09-19T13:27:23.329464336Z"
