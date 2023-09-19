@@ -41,8 +41,8 @@ helm install -n cert-manager godaddy-webhook --set pod.securePort=8443 ./deploy/
 $ helm delete godaddy-webhook -n cert-manager
 ```
 
-- Alternatively, you can install the webhook using the list of the kubernetes resources. The namespace
-  used to install the resources is `cert-manager`
+- Alternatively, you can install the webhook using the kubernetes YAML resources. The namespace
+  where the resources should be installed is: `cert-manager`
 ```bash
  kubectl apply -f deploy/webhook-all.yml --validate=false
 ```
