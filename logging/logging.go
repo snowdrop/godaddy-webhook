@@ -18,6 +18,7 @@ const (
 
 // Configure sets the logrus logging level and formatter
 func Configure(level, format string, logTimestamp bool) error {
+	logrus.Debugf("Level: %s, format: %s, logTimeStamp: %t", level, format, logTimestamp)
 	lvl, err := logrus.ParseLevel(level)
 	if err != nil {
 		return errors.Wrap(err, "parsing log level")
@@ -45,4 +46,3 @@ func Configure(level, format string, logTimestamp bool) error {
 
 	return nil
 }
-
