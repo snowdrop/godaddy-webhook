@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
 	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
+	pkgutil "github.com/jetstack/cert-manager/pkg/util"
+	"github.com/snowdrop/godaddy-webhook/logging"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,18 +19,13 @@ import (
 	"time"
 
 	logrus "github.com/sirupsen/logrus"
-	"github.com/snowdrop/godaddy-webhook/common"
-	"github.com/snowdrop/godaddy-webhook/logging"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
 	certmgrv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-
-	pkgutil "github.com/jetstack/cert-manager/pkg/util"
 )
 
 const (
@@ -42,10 +40,11 @@ const (
 )
 
 var (
-	logLevel     string // Log level (trace, debug, info, warn, error, fatal, panic)
-	logFormat    string // Log format (text, color, json)
-	logTimestamp bool   // Timestamp in log output
-	GroupName    = os.Getenv("GROUP_NAME")
+	logLevel        = os.Getenv(LOGGING_LEVEL_ENV_NAME)     // Log level (trace, debug, info, warn, error, fatal, panic)
+	logFormat       = os.Getenv(LOGGING_FORMAT_ENV_NAME)    // Log format (text, color, json)
+	logTimestampStr = os.Getenv(LOGGING_TIMESTAMP_ENV_NAME) // Timestamp in log output
+	logTimestamp    bool
+	GroupName       = os.Getenv("GROUP_NAME")
 )
 
 // DNSRecord a DNS record
@@ -62,21 +61,18 @@ func main() {
 		panic("GROUP_NAME must be specified")
 	}
 
-	logLevel = common.GetValFromEnVar(LOGGING_LEVEL_ENV_NAME)
 	if logLevel == "" {
 		logLevel = DefaultLevel
 	}
 
-	logFormat = common.GetValFromEnVar(LOGGING_FORMAT_ENV_NAME)
 	if logFormat == "" {
 		logFormat = DefaultLogFormat
 	}
 
-	loggingTimeStampStr := common.GetValFromEnVar(LOGGING_TIMESTAMP_ENV_NAME)
-	if loggingTimeStampStr == "" {
+	if logTimestampStr == "" {
 		logTimestamp = DefaultLogTimestamp
 	} else {
-		v, err := strconv.ParseBool(loggingTimeStampStr)
+		v, err := strconv.ParseBool(logTimestampStr)
 		if err != nil {
 			logrus.Fatalf("logTimestamp bool assignment failed %s", err)
 		} else {
@@ -84,7 +80,7 @@ func main() {
 		}
 	}
 
-	if err := logging.Configure(DefaultLevel, DefaultLogFormat, DefaultLogTimestamp); err != nil {
+	if err := logging.Configure(logLevel, logFormat, logTimestamp); err != nil {
 		panic(err)
 	}
 
@@ -226,7 +222,7 @@ func (c *godaddyDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	logrus.Infof("### Try to present the DNS record with the DNS provider using as challengeKey: %s",ch.Key)
+	logrus.Infof("### Try to present the DNS record with the DNS provider using as challengeKey: %s", ch.Key)
 	_, err = c.HasTXTRecord(cfg, dnsZone, recordName, ch.Key)
 	if err != nil {
 		return fmt.Errorf("Unable to check the TXT record: %v", err)
@@ -234,10 +230,10 @@ func (c *godaddyDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 
 	rec := []DNSRecord{{
 		Data: c.TXTRecordContent(ch.Key),
-		TTL: cfg.TTL,
+		TTL:  cfg.TTL,
 		Type: "TXT",
 		Name: recordName,
-		},
+	},
 	}
 
 	err = c.UpdateRecords(cfg, rec, dnsZone, recordName)
@@ -255,6 +251,7 @@ func (c *godaddyDNSSolver) TXTRecordContent(key string) string {
 		return "null"
 	}
 }
+
 // CleanUp should delete the relevant TXT record from the DNS provider console.
 // If multiple TXT records exist with the same record name (e.g.
 // _acme-challenge.example.com) then **only** the record with the same `key`
@@ -284,7 +281,7 @@ func (c *godaddyDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	logrus.Infof("### CleanUp should delete the relevant TXT record for the challengeKey: %s",ch.Key)
+	logrus.Infof("### CleanUp should delete the relevant TXT record for the challengeKey: %s", ch.Key)
 	present, err := c.HasTXTRecord(cfg, dnsZone, recordName, ch.Key)
 	if err != nil {
 		return fmt.Errorf("### Unable to check TXT record: %s", err)
@@ -292,7 +289,7 @@ func (c *godaddyDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 
 	if present {
 		logrus.Infof("### Deleting entry=%s, domain=%s", recordName, dnsZone)
-		err := c.DeleteTxtRecord(cfg,dnsZone,recordName)
+		err := c.DeleteTxtRecord(cfg, dnsZone, recordName)
 		if err != nil {
 			return fmt.Errorf("### Unable to delete the TXT record: %v", err)
 		}
@@ -339,12 +336,15 @@ func (c *godaddyDNSSolver) HasTXTRecord(cfg *godaddyDNSProviderConfig, domainZon
 	// curl -X GET -H "Authorization: sso-key $TOKEN"
 	// "https://api.godaddy.com/v1/domains/<DOMAIN>/records/TXT/<NAME>"
 	url := fmt.Sprintf("/v1/domains/%s/records/TXT/%s", domainZone, recordName)
+	logrus.Debugf("### Godaddy Api: %s, Secret: %s keys", cfg.AuthAPIKey, cfg.AuthAPISecret)
 	logrus.Infof("### URL request issued to check if the TXT DNS record is present: %s", url)
 
 	resp, err := c.makeRequest(cfg, http.MethodGet, url, nil)
 	if err != nil {
+		logrus.Infof("### HTTP request failed with Godaddy: %s", err)
 		return false, err
 	}
+	logrus.Debugf("### Godaddy HTTP response: %s", resp)
 
 	if resp.StatusCode == http.StatusNotFound {
 		return false, nil
@@ -355,18 +355,18 @@ func (c *godaddyDNSSolver) HasTXTRecord(cfg *godaddyDNSProviderConfig, domainZon
 			return false, fmt.Errorf("### HTTP response body cannot be parsed to JSON: %s", err)
 		}
 
-		if (len(dnsRecords) == 0) {
+		if len(dnsRecords) == 0 {
 			logrus.Info("### No TXT Record found using godaddy REST API !")
 			return false, nil
 		} else {
 			for _, dnsRecord := range dnsRecords {
 				logrus.Infof("### TXT Record collected from godaddy: %#v", dnsRecord)
-				if (dnsRecord.Data == challengeKey) {
-					logrus.Infof("### TXT Record found : %#v, for challengeKey: %s", dnsRecord,challengeKey)
+				if dnsRecord.Data == challengeKey {
+					logrus.Infof("### TXT Record found : %#v, for challengeKey: %s", dnsRecord, challengeKey)
 					return true, nil
 				}
 			}
-			logrus.Infof("### No TXT Record found within the response for challengeKey: %s",challengeKey)
+			logrus.Infof("### No TXT Record found within the response for challengeKey: %s", challengeKey)
 			return false, nil
 		}
 	} else {
@@ -419,7 +419,7 @@ func (c *godaddyDNSSolver) DeleteTxtRecord(cfg *godaddyDNSProviderConfig, domain
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("### Failed deleting TXT record: %v, status of the response: %d", err,resp.StatusCode)
+		return fmt.Errorf("### Failed deleting TXT record: %v, status of the response: %d", err, resp.StatusCode)
 	}
 	logrus.Infof("### TXT Record deleted using Godaddy REST API")
 	return nil
@@ -432,9 +432,12 @@ func (c *godaddyDNSSolver) makeRequest(cfg *godaddyDNSProviderConfig, method str
 	}
 
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", pkgutil.CertManagerUserAgent)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", pkgutil.CertManagerUserAgent)
 	req.Header.Set("Authorization", fmt.Sprintf("sso-key %s:%s", cfg.AuthAPIKey, cfg.AuthAPISecret))
+
+	logrus.Debugf("### Godaddy HTTP request: %s", req.URL.String())
+	logrus.Debugf("### Header authorisation: %s", req.Header.Get("Authorization"))
 
 	client := http.Client{
 		Timeout: 30 * time.Second,

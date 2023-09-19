@@ -12,6 +12,11 @@ image:
 pod:
   securePort:
 
+logging:
+  level: info        # Log level (trace, debug, info, warn, error, fatal, panic)
+  format: color      # Log format (text, color, json)
+  timestamp: false   # Timestamp in log output: true/false
+
 groupName: acme.mycompany.com
 
 certManager:

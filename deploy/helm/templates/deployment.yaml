@@ -32,6 +32,12 @@ spec:
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}
+            - name: LOGGING_LEVEL
+              value: {{ .Values.logging.level }}
+            - name: LOGGING_FORMAT
+              value: {{ .Values.logging.format }}
+            - name: LOGGING_TIMESTAMP
+              value: {{ .Values.logging.timestamp | quote }}
           ports:
             - name: https
               containerPort: {{ default 443 .Values.pod.securePort }}
