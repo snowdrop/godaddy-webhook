@@ -49,9 +49,9 @@ You can also use the Helm chart published on gh-pages
 ```bash
 helm repo add godaddy-webhook https://snowdrop.github.io/godaddy-webhook
 helm install acme-webhook godaddy-webhook/godaddy-webhook -n cert-manager
-...
+```
 
-- To uninstall the webhook:
+To uninstall the webhook:
 ```bash
 helm uninstall acme-webhook -n cert-manager
 ```
