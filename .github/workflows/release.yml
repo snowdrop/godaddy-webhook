@@ -73,3 +73,7 @@ jobs:
           charts_dir: deploy/charts
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Deleting the releasing branch
+        run: |
+          git push origin --delete release/${{ steps.tag-chart.outputs.TAG_VERSION }}
