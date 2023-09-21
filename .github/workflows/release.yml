@@ -49,6 +49,7 @@ jobs:
           git tag v${TAG_VERSION}
           
           git checkout main
+          git pull
           git merge release/${TAG_VERSION}
           
           git push origin main
