@@ -41,16 +41,33 @@ jobs:
 
           yq '.appVersion = env(NEW_VERSION)' -i ./deploy/charts/godaddy-webhook/Chart.yaml
           yq '.image.tag  = env(NEW_VERSION)' -i ./deploy/charts/godaddy-webhook/values.yaml
+          
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add ./deploy/charts/godaddy-webhook/Chart.yaml
+          git add ./deploy/charts/godaddy-webhook/values.yaml
+          git commit -m "Update Helm chart version to $NEW_VERSION"
+          git push
 
-          echo "Chart updated"
-          cat ./deploy/charts/godaddy-webhook/Chart.yaml
+      - name: Login to Quay.io Hub
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT_USER }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
-          echo "Values updated"
-          cat ./deploy/charts/godaddy-webhook/values.yaml      
+      - name: Build the container image
+        run: |
+          NEW_VERSION="${{ steps.next-version.outputs.version }}"
+          docker build -t cert-manager-webhook-godaddy:${NEW_VERSION} -f Dockerfile .
 
-      #- name: Run chart-releaser
-      #  uses: helm/chart-releaser-action@v1.5.0
-      #  with:
-      #    charts_dir: deploy/charts
-      #  env:
-      #    CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${NEW_VERSION})
+          docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:${NEW_VERSION}
+          docker push quay.io/snowdrop/cert-manager-webhook-godaddy:${NEW_VERSION}   
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.5.0
+        with:
+          charts_dir: deploy/charts
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

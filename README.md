@@ -15,6 +15,21 @@ Table of Contents
       * [Running the test suite](#running-the-test-suite)
       * [Generate the container image](#generate-the-container-image)
 
+## Introduction
+
+This project maintains the code used by the [certificate manager](https://cert-manager.io/docs/configuration/acme/dns01/) to access the Godaddy [DNS provider](https://www.godaddy.com/) using a Kubernetes webhook
+which needs to be deployed on your kubernetes cluster. When called, the webhook will execute an ACME DNS challenge request to the DNS provider
+to verify if the provider hosts the domain you are requesting a certificate.
+
+This project supports the following versions of the certificate manager:
+
+| Certificate Manager | Godaddy webhook |
+|---------------------|-----------------|
+| [1.6 - 1.12]        | v0.1.0          | 
+| [> 1.13]            | v0.2.0          | 
+
+**Remark**: The Helm chart `AppVersion` like the image `version` are tagged according to the version used to release this project: v0.1.0, v0.2.0. When using the main branch, the Helm chart will install the latest image pushed on [quay.io](https://quay.io/repository/snowdrop/cert-manager-webhook-godaddy)
+
 ## Installation
 
 ### Cert Manager
@@ -22,7 +37,7 @@ Table of Contents
 Follow the [instructions](https://cert-manager.io/docs/installation/) using the cert manager documentation to install it within your cluster.
 On kubernetes (>= 1.21), the process is pretty straightforward if you use the following commands:
 ```bash
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.yaml
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.13.0/cert-manager.yaml
 ```
 **NOTES**: Check the cert-manager releases note to verify which [version of certmanager](https://cert-manager.io/docs/installation/supported-releases/) is supported with Kubernetes or OpenShift
 
