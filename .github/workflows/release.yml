@@ -48,8 +48,11 @@ jobs:
           git push origin release/${TAG_VERSION}
           git tag v${TAG_VERSION}
           
-          git merge main --no-edit
-          git push
+          git checkout main
+          git merge release/${TAG_VERSION}
+          
+          git push origin main
+          
           git status
           
           #git push origin release/v${TAG_VERSION}
