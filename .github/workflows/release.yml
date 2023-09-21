@@ -48,16 +48,6 @@ jobs:
           git push origin release/${TAG_VERSION}
           git tag v${TAG_VERSION}
           
-          git checkout main
-          git pull
-          git merge release/${TAG_VERSION}
-          
-          git push origin main
-          
-          git status
-          
-          #git push origin release/v${TAG_VERSION}
-          
           echo "TAG_VERSION=${TAG_VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: Login to Quay.io Hub
@@ -83,6 +73,10 @@ jobs:
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Deleting the releasing branch
+      - name: Push back the release branch and delete it
         run: |
+          git checkout main
+          git pull
+          git merge release/${TAG_VERSION}
+          git push origin main
           git push origin --delete release/${{ steps.tag-chart.outputs.TAG_VERSION }}
