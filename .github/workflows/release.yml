@@ -41,12 +41,12 @@ jobs:
           yq '.version = env(TAG_VERSION)' -i ./deploy/charts/godaddy-webhook/Chart.yaml
           yq '.image.tag  = env(TAG_VERSION)' -i ./deploy/charts/godaddy-webhook/values.yaml
           
-          git add ./deploy/charts/godaddy-webhook/Chart.yaml
-          git add ./deploy/charts/godaddy-webhook/values.yaml
-          
+          echo "Git status ..."
           git status
+          git branch
           git commit -asm "Update Helm chart version to $TAG_VERSION"
           
+          echo "Git status ..."
           git status
           git push origin release/${TAG_VERSION}
           
