@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jetstack/cert-manager/test/acme/dns"
+	"github.com/cert-manager/cert-manager/test/acme"
 	"os"
 	"testing"
 	"time"

@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
-	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
-	pkgutil "github.com/jetstack/cert-manager/pkg/util"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
+	"github.com/cert-manager/cert-manager/pkg/issuer/acme/dns/util"
+	useragent "github.com/cert-manager/cert-manager/pkg/util"
 	"github.com/snowdrop/godaddy-webhook/logging"
 	"io"
 	"io/ioutil"
@@ -24,8 +24,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	certmgrv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	certmgrv1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 )
 
 const (
@@ -96,7 +96,7 @@ func main() {
 
 // godaddyDNSSolver implements the provider-specific logic needed to
 // 'present' an ACME challenge TXT record for your own DNS provider.
-// To do so, it must implement the `github.com/jetstack/cert-manager/pkg/acme/webhook.Solver`
+// To do so, it must implement the `github.com/cert-manager/cert-manager/pkg/acme/webhook.Solver`
 // interface.
 type godaddyDNSSolver struct {
 	client *kubernetes.Clientset
@@ -344,7 +344,7 @@ func (c *godaddyDNSSolver) HasTXTRecord(cfg *godaddyDNSProviderConfig, domainZon
 		logrus.Infof("### HTTP request failed with Godaddy: %s", err)
 		return false, err
 	}
-	logrus.Debugf("### Godaddy HTTP response: %s", resp)
+	logrus.Debugf("### Godaddy HTTP body response: %s", resp.Body)
 
 	if resp.StatusCode == http.StatusNotFound {
 		return false, nil
@@ -388,7 +388,7 @@ func (c *godaddyDNSSolver) UpdateRecords(cfg *godaddyDNSProviderConfig, records 
 	var resp *http.Response
 	url := fmt.Sprintf("/v1/domains/%s/records/TXT/%s", domainZone, recordName)
 	logrus.Infof("### URL request issued to create/update the DNS record: %s", url)
-	logrus.Infof("### DNS record(s): %s", body)
+	logrus.Debugf("### DNS record(s): %s", body)
 	resp, err = c.makeRequest(cfg, http.MethodPut, url, bytes.NewReader(body))
 	if err != nil {
 		return err
@@ -431,9 +431,11 @@ func (c *godaddyDNSSolver) makeRequest(cfg *godaddyDNSProviderConfig, method str
 		return nil, err
 	}
 
+	var CertManagerUserAgent = "cert-manager/" + useragent.AppVersion
+
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", pkgutil.CertManagerUserAgent)
+	req.Header.Set("User-Agent", CertManagerUserAgent)
 	req.Header.Set("Authorization", fmt.Sprintf("sso-key %s:%s", cfg.AuthAPIKey, cfg.AuthAPISecret))
 
 	logrus.Debugf("### Godaddy HTTP request: %s", req.URL.String())
