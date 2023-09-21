@@ -24,22 +24,25 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
 
-      - name: Tag chart and image
+      - name: Tag chart and image version
+        id: tag-chart
         run: |
           TAG_NAME="${{ github.ref_name }}"
           echo "Tag Name: ${TAG_NAME}"
-          echo "Tag version: ${TAG_NAME:1}"
           
-          export NEW_VERSION=${TAG_NAME:1}
+          export TAG_VERSION=${TAG_NAME:1}
+          echo "Tag version: ${TAG_VERSION}"
 
-          yq '.appVersion = env(NEW_VERSION)' -i ./deploy/charts/godaddy-webhook/Chart.yaml
-          yq '.image.tag  = env(NEW_VERSION)' -i ./deploy/charts/godaddy-webhook/values.yaml
+          yq '.appVersion = env(TAG_VERSION)' -i ./deploy/charts/godaddy-webhook/Chart.yaml
+          yq '.image.tag  = env(TAG_VERSION)' -i ./deploy/charts/godaddy-webhook/values.yaml
           
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           git add ./deploy/charts/godaddy-webhook/Chart.yaml
           git add ./deploy/charts/godaddy-webhook/values.yaml
-          git commit -m "Update Helm chart version to $NEW_VERSION"
+          git commit -m "Update Helm chart version to $TAG_VERSION"
+          
+          echo "TAG_VERSION=${TAG_VERSION}" >> "${GITHUB_OUTPUT}"
           
           #TODO: Find a better way to psuh on a tag OR to not push a commit on a tag
           git tag -f ${TAG_NAME}
@@ -54,7 +57,7 @@ jobs:
 
       - name: Build the container image
         run: |
-          NEW_VERSION="${{ steps.next-version.outputs.version }}"
+          NEW_VERSION="${{ steps.tag-chart.outputs.TAG_VERSION }}"
           docker build -t cert-manager-webhook-godaddy:${NEW_VERSION} -f Dockerfile .
 
           TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${NEW_VERSION})
