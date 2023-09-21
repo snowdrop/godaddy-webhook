@@ -44,8 +44,13 @@ jobs:
           git add ./deploy/charts/godaddy-webhook/Chart.yaml
           git add ./deploy/charts/godaddy-webhook/values.yaml
           
+          git status
           git commit -asm "Update Helm chart version to $TAG_VERSION"
+          
+          git status
           git push origin release/${TAG_VERSION}
+          
+          echo "Tagging ..."
           git tag v${TAG_VERSION}
           
           echo "TAG_VERSION=${TAG_VERSION}" >> "${GITHUB_OUTPUT}"
