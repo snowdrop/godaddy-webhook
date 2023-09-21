@@ -2,12 +2,12 @@
 
 Table of Contents
 =================
-
+  * [Introduction](#introduction)
   * [Installation](#installation)
       * [Cert Manager](#cert-manager)
-  * [The Godaddy webhook](#the-godaddy-webhook)
-      * [Helm deployment](#helm-deployment)
-      * [Manual installation](#manual-installation)
+      * [The Godaddy webhook](#the-godaddy-webhook)
+        * [Helm deployment](#helm-deployment)
+        * [Manual installation](#manual-installation)
   * [Issuer](#issuer)
       * [Secret](#secret)
       * [ClusterIssuer](#clusterissuer)
