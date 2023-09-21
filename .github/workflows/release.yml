@@ -1,12 +1,12 @@
 name: Release Godaddy Webhook Helm Chart
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '[to_release]')
+    # if: contains(github.event.head_commit.message, '[to_release]')
     permissions:
       contents: write # for creating Releases .tgz (403 from chart-releaser-action if not set)
       #pages: write # not required for chart-releaser-action
