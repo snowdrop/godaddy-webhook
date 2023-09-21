@@ -40,7 +40,10 @@ jobs:
           git add ./deploy/charts/godaddy-webhook/Chart.yaml
           git add ./deploy/charts/godaddy-webhook/values.yaml
           git commit -m "Update Helm chart version to $NEW_VERSION"
-          git push
+          
+          #TODO: Find a better way to psuh on a tag OR to not push a commit on a tag
+          git tag -f ${TAG_NAME}
+          git push origin --force ${TAG_NAME}
 
       - name: Login to Quay.io Hub
         uses: docker/login-action@v1
