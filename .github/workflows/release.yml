@@ -38,6 +38,7 @@ jobs:
           echo "Tag version: ${TAG_VERSION}"
 
           yq '.appVersion = env(TAG_VERSION)' -i ./deploy/charts/godaddy-webhook/Chart.yaml
+          yq '.version = env(TAG_VERSION)' -i ./deploy/charts/godaddy-webhook/Chart.yaml
           yq '.image.tag  = env(TAG_VERSION)' -i ./deploy/charts/godaddy-webhook/values.yaml
           
           git add ./deploy/charts/godaddy-webhook/Chart.yaml
