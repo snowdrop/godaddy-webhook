@@ -6,10 +6,11 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
+    if: contains(github.event.head_commit.message, '[to_release]')
     permissions:
       contents: write # for creating Releases .tgz (403 from chart-releaser-action if not set)
       #pages: write # not required for chart-releaser-action
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -24,9 +25,32 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
 
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.5.0
+      - # This action gets the latest tag version and increment it
+        # using semver as documented: https://github.com/reecetech/version-increment/tree/main
+        name: Get next version
+        uses: reecetech/version-increment@2023.9.3
+        id: next-version
         with:
-          charts_dir: deploy/charts
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          scheme: semver
+          increment: minor
+
+      - name: Tag chart and image
+        run: |
+          export NEW_VERSION="${{ steps.next-version.outputs.version }}"
+          echo "New version: $NEW_VERSION"
+
+          yq '.appVersion = env(NEW_VERSION)' -i ./deploy/charts/godaddy-webhook/Chart.yaml
+          yq '.image.tag  = env(NEW_VERSION)' -i ./deploy/charts/godaddy-webhook/values.yaml
+
+          echo "Chart updated"
+          cat ./deploy/charts/godaddy-webhook/Chart.yaml
+
+          echo "Values updated"
+          cat ./deploy/charts/godaddy-webhook/values.yaml      
+
+      #- name: Run chart-releaser
+      #  uses: helm/chart-releaser-action@v1.5.0
+      #  with:
+      #    charts_dir: deploy/charts
+      #  env:
+      #    CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
