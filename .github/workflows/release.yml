@@ -47,7 +47,12 @@ jobs:
           git commit -asm "Update Helm chart version to $TAG_VERSION"
           git push origin release/${TAG_VERSION}
           git tag v${TAG_VERSION}
-          git push origin release/v${TAG_VERSION}
+          
+          git merge main --no-edit
+          git push
+          git status
+          
+          #git push origin release/v${TAG_VERSION}
           
           echo "TAG_VERSION=${TAG_VERSION}" >> "${GITHUB_OUTPUT}"
 
