@@ -5,7 +5,7 @@
 replicaCount: 1
 image:
   repository: quay.io/snowdrop/cert-manager-webhook-godaddy
-  tag: 0.1.0
+  tag: latest
   pullPolicy: IfNotPresent
 pod:
   securePort:
