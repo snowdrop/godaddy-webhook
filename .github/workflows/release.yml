@@ -30,7 +30,7 @@ jobs:
           echo "Tag Name: ${TAG_NAME}"
           echo "Tag version: ${TAG_NAME:1}"
           
-          export NEW_VERSION=${TAG_NAME:1}"
+          export NEW_VERSION=${TAG_NAME:1}
 
           yq '.appVersion = env(NEW_VERSION)' -i ./deploy/charts/godaddy-webhook/Chart.yaml
           yq '.image.tag  = env(NEW_VERSION)' -i ./deploy/charts/godaddy-webhook/values.yaml
