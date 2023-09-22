@@ -80,6 +80,7 @@ jobs:
 
       - name: Push back the release branch and delete it
         run: |
+          TAG_VERSION="${{ steps.tag-chart.outputs.TAG_VERSION }}"
           git checkout main
           git pull
           git merge release/${TAG_VERSION}
