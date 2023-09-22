@@ -49,10 +49,7 @@ jobs:
           echo "Git status ..."
           git status
           git push origin release/${TAG_VERSION}
-          
-          echo "Tagging ..."
-          git tag v${TAG_VERSION}
-          
+                    
           echo "TAG_VERSION=${TAG_VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: Login to Quay.io Hub
@@ -81,8 +78,15 @@ jobs:
       - name: Push back the release branch and delete it
         run: |
           TAG_VERSION="${{ steps.tag-chart.outputs.TAG_VERSION }}"
+          
           git checkout main
           git pull
           git merge release/${TAG_VERSION}
           git push origin main
+          
+          echo "Tagging main"
+          git tag v${TAG_VERSION}
+          git push origin v${TAG_VERSION}
+          
+          # TODO: Should we delete it ??
           git push origin --delete release/${{ steps.tag-chart.outputs.TAG_VERSION }}
