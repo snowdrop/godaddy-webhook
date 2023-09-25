@@ -260,6 +260,12 @@ spec:
         env:
         - name: GROUP_NAME
           value: acme.mycompany.com
+        - name: LOGGING_LEVEL
+          value: info
+        - name: LOGGING_FORMAT
+          value: color
+        - name: LOGGING_TIMESTAMP
+          value: "false"
         image: quay.io/snowdrop/cert-manager-webhook-godaddy:latest
         imagePullPolicy: IfNotPresent
         livenessProbe:
