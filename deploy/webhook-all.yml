@@ -4,7 +4,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook
   namespace: cert-manager
 
@@ -14,7 +14,7 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook
 rules:
   - apiGroups:
@@ -30,7 +30,7 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -47,7 +47,7 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook:webhook-authentication-reader
   namespace: kube-system
 roleRef:
@@ -65,7 +65,7 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook:domain-solver
 rules:
 - apiGroups:
@@ -81,7 +81,7 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook:auth-delegator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -98,7 +98,7 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook:domain-solver
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -118,7 +118,7 @@ metadata:
   name: godaddy-webhook:flowcontrol-solver
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
 rules:
   - apiGroups:
       - "flowcontrol.apiserver.k8s.io"
@@ -135,7 +135,7 @@ metadata:
   name: godaddy-webhook:flowcontrol-solver
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -151,7 +151,7 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook
   namespace: cert-manager
 spec:
@@ -170,7 +170,7 @@ kind: Issuer
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook-ca
   namespace: cert-manager
 spec:
@@ -183,7 +183,7 @@ kind: Issuer
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook-selfsign
   namespace: cert-manager
 spec:
@@ -195,7 +195,7 @@ kind: Certificate
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook-ca
   namespace: cert-manager
 spec:
@@ -212,7 +212,7 @@ kind: Certificate
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook-webhook-tls
   namespace: cert-manager
 spec:
@@ -231,7 +231,7 @@ kind: Deployment
 metadata:
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: godaddy-webhook
   namespace: cert-manager
 spec:
@@ -266,7 +266,7 @@ spec:
           value: color
         - name: LOGGING_TIMESTAMP
           value: "false"
-        image: quay.io/snowdrop/cert-manager-webhook-godaddy:latest
+        image: quay.io/snowdrop/cert-manager-webhook-godaddy:0.2.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -319,7 +319,7 @@ metadata:
     cert-manager.io/inject-ca-from: cert-manager/godaddy-webhook-webhook-tls
   labels:
     app.kubernetes.io/name: godaddy-webhook
-    app.kubernetes.io/version: 0.1.1
+    app.kubernetes.io/version: 0.2.0
   name: v1alpha1.acme.mycompany.com
 spec:
   group: acme.mycompany.com
