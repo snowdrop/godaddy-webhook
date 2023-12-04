@@ -207,7 +207,7 @@ kubectl apply -f ingress.yml -n <NAMESPACE>
 
 ### Running the test suite
 
-**IMPORTANT**: Use the tetsuite carefully and do not launch it too much times as the DNS servers could fail and report such a message `suite.go:62: error waiting for record to be deleted: unexpected error from DNS server: SERVFAIL`
+**IMPORTANT**: Use the testsuite carefully and do not launch it too much times as the DNS servers could fail and report such a message `suite.go:62: error waiting for record to be deleted: unexpected error from DNS server: SERVFAIL`
 
 To test one of your registered domains on godaddy, create a secret.yml file using as [example] file(./testdata/godaddy/godaddy.secret.example)
 Replace the `$GODADDY_TOKEN` with your Godaddy API token which corresponds to your `<GODADDY_API_KEY>:<GODADDY_SECRET_KEY>`:
