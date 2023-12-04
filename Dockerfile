@@ -4,9 +4,7 @@ WORKDIR /go/src/webhook-app
 COPY . .
 RUN --mount=type=cache,target=$HOME/go/pkg/mod go mod download
 
-ARG TARGETOS
-ARG TARGETARCH
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /webhook-app -ldflags '-w -extldflags "-static"' .
+RUN CGO_ENABLED=0 go build -o /webhook-app -ldflags '-w -extldflags "-static"' .
 
 FROM alpine:3
 
