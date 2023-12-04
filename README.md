@@ -3,6 +3,7 @@
 Table of Contents
 =================
   * [Introduction](#introduction)
+  * [Paltform](#platform)
   * [Installation](#installation)
       * [Cert Manager](#cert-manager)
       * [The Godaddy webhook](#the-godaddy-webhook)
@@ -29,6 +30,10 @@ This project supports the following versions of the certificate manager:
 | [> 1.13]            | v0.2.0          | 
 
 **Remark**: The Helm chart `AppVersion` like the image `version` are tagged according to the version used to release this project: v0.1.0, v0.2.0. When using the main branch, the Helm chart will install the latest image pushed on [quay.io](https://quay.io/repository/snowdrop/cert-manager-webhook-godaddy)
+
+## Platform
+
+The image built supports as Arch: am64 and arm64 since release `>= 0.2.0`
 
 ## Installation
 
