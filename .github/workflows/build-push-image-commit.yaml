@@ -16,11 +16,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      #- name: Install go 1.16
-      #  uses: actions/setup-go@v2
-      #  with:
-      #    go-version: 1.16
-
       - name: Build & push Docker image
         uses: mr-smithers-excellent/docker-build-push@v6
         with:
@@ -32,17 +27,3 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_ROBOT_USER }}
           password: ${{ secrets.QUAY_ROBOT_TOKEN }}
-
-      #- name: Build the container image
-      #  run: |
-      #    VERSION=$(git rev-parse --short HEAD 2>/dev/null)
-      #    docker buildx build --platform linux/${{ matrix.arch }} --load --tag cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
-      #
-      #    TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${VERSION})
-      #    echo "Tagging the images using as tag id: ${TAG_ID} and version: ${VERSION}"
-      #
-      #    docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
-      #    docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:latest
-#
-      #    docker push quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
-      #    docker push quay.io/snowdrop/cert-manager-webhook-godaddy:latest
