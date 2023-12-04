@@ -31,7 +31,7 @@ jobs:
       - name: Build the container image
         run: |
           VERSION=$(git rev-parse --short HEAD 2>/dev/null)
-          docker buildx build --platform linux/amd64,linux/arm64 -t cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
+          docker buildx build --platform linux/amd64,linux/arm64 --tag cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
 
           TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${VERSION})
           docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
