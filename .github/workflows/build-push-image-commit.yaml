@@ -4,8 +4,8 @@ on:
     branches: [ main ]
   push:
     branches:
-      #- main
-      - 'issue-*'
+      - main
+
 jobs:
   build_push_image:
     runs-on: ubuntu-latest
@@ -31,7 +31,7 @@ jobs:
       - name: Build the container image
         run: |
           VERSION=$(git rev-parse --short HEAD 2>/dev/null)
-          docker buildx build --platform linux/amd64,linux/arm64 --tag cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
+          docker buildx build --platform linux/amd64,linux/arm64 --load --tag cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
 
           TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${VERSION})
           echo "Tagging the images using as tag id: ${TAG_ID} and version: ${VERSION}"
