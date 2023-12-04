@@ -21,23 +21,28 @@ jobs:
       #  with:
       #    go-version: 1.16
 
-      - name: Login to Quay.io Hub
-        uses: docker/login-action@v1
+      - uses: mr-smithers-excellent/docker-build-push@v6
+        name: Build & push Docker image
         with:
+          image: snowdrop/cert-manager-webhook-godaddy
+          platforms:  'amd64', 'arm64'
+          addLatest: true
+          multiPlatform: true
+          platform: linux/amd64,linux/arm64
           registry: quay.io
           username: ${{ secrets.QUAY_ROBOT_USER }}
           password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
-      - name: Build the container image
-        run: |
-          VERSION=$(git rev-parse --short HEAD 2>/dev/null)
-          docker buildx build --platform linux/amd64,linux/arm64 --load --tag cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
-
-          TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${VERSION})
-          echo "Tagging the images using as tag id: ${TAG_ID} and version: ${VERSION}"
-          
-          docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
-          docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:latest
-
-          docker push quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
-          docker push quay.io/snowdrop/cert-manager-webhook-godaddy:latest
+      #- name: Build the container image
+      #  run: |
+      #    VERSION=$(git rev-parse --short HEAD 2>/dev/null)
+      #    docker buildx build --platform linux/${{ matrix.arch }} --load --tag cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
+      #
+      #    TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${VERSION})
+      #    echo "Tagging the images using as tag id: ${TAG_ID} and version: ${VERSION}"
+      #
+      #    docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
+      #    docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:latest
+#
+      #    docker push quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
+      #    docker push quay.io/snowdrop/cert-manager-webhook-godaddy:latest
