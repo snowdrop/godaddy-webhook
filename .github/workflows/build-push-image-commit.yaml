@@ -34,6 +34,8 @@ jobs:
           docker buildx build --platform linux/amd64,linux/arm64 --tag cert-manager-webhook-godaddy:${VERSION} -f Dockerfile .
 
           TAG_ID=$(docker images -q cert-manager-webhook-godaddy:${VERSION})
+          echo "Tagging the images using as tag id: ${TAG_ID} and version: ${VERSION}"
+          
           docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:${VERSION}
           docker tag ${TAG_ID} quay.io/snowdrop/cert-manager-webhook-godaddy:latest
 
