@@ -21,11 +21,10 @@ jobs:
       #  with:
       #    go-version: 1.16
 
-      - uses: mr-smithers-excellent/docker-build-push@v6
-        name: Build & push Docker image
+      - name: Build & push Docker image
+        uses: mr-smithers-excellent/docker-build-push@v6
         with:
           image: snowdrop/cert-manager-webhook-godaddy
-          platforms:  'amd64', 'arm64'
           addLatest: true
           multiPlatform: true
           platform: linux/amd64,linux/arm64
