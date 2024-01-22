@@ -8,7 +8,7 @@ ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /webhook-app -ldflags '-w -extldflags "-static"' .
 
 FROM alpine:3
-ENV USER=godaddyWebhook #also the group name
+ENV USER=godaddyWebhook
 ENV UID=2050
 ENV GID=2050
 
