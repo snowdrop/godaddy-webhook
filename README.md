@@ -59,7 +59,8 @@ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.1
 
 When the cert-manager has been installed, deploy the helm chart on your machine using this command:
 ```bash
-helm install -n cert-manager godaddy-webhook ./deploy/charts/godaddy-webhook
+export DOMAIN=acme.mydomain.com  # replace with your domain
+helm install -n cert-manager godaddy-webhook ./deploy/charts/godaddy-webhook --set groupName=$DOMAIN
 ```
 **NOTE**: The kubernetes resources used to install the Webhook should be deployed within the same namespace as the cert-manager.
 
@@ -74,8 +75,9 @@ helm install -n cert-manager godaddy-webhook --set pod.securePort=8443 ./deploy/
 
 You can also use the Helm chart published on gh-pages
 ```bash
+export DOMAIN=acme.mydomain.com  # replace with your domain
 helm repo add godaddy-webhook https://snowdrop.github.io/godaddy-webhook
-helm install acme-webhook godaddy-webhook/godaddy-webhook -n cert-manager
+helm install acme-webhook godaddy-webhook/godaddy-webhook -n cert-manager --set groupName=$DOMAIN
 ```
 
 To uninstall the webhook:
@@ -88,7 +90,8 @@ helm uninstall acme-webhook -n cert-manager
 Alternatively, you can install the webhook using the kubernetes YAML resources. The namespace
   where the resources should be installed is: `cert-manager`
 ```bash
- kubectl apply -f deploy/webhook-all.yml --validate=false
+export DOMAIN=acme.mydomain.com  # replace with your domain
+sed "s/acme.mycompany.com/$DOMAIN/g" deploy/webhook-all.yml | kubectl apply --validate=false -f -
 ```
 
 ## Issuer
