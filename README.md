@@ -62,6 +62,11 @@ When the cert-manager has been installed, deploy the helm chart on your machine 
 export DOMAIN=acme.mydomain.com  # replace with your domain
 helm install -n cert-manager godaddy-webhook ./deploy/charts/godaddy-webhook --set groupName=$DOMAIN
 ```
+
+The `groupName` refers to a prior nonexistant Kubernetes API Group, under which custom resources are created.
+The name itself has no connection to the domain names for which certificates are issued, and using the default of
+`acme.mycompany.com` is fine.
+
 **NOTE**: The kubernetes resources used to install the Webhook should be deployed within the same namespace as the cert-manager.
 
 - To change one of the values, create a `my-values.yml` file or set the value(s) using helm's `--set` argument:
@@ -122,7 +127,7 @@ kubectl apply -f secret.yml -n <NAMESPACE>
 
 ### ClusterIssuer
 
-- Create a `ClusterIssuer`resource to specify the address of the ACME staging or production server to access.
+- Create a `ClusterIssuer` resource to specify the address of the ACME staging or production server to access.
   Add the DNS01 Solver Config that this webhook will use to communicate with the API of the Godaddy Server in order to create
    or delete an ACME Challenge TXT record that the DNS Provider will accept/refuse if the domain name exists.
 
@@ -144,8 +149,8 @@ spec:
       name: letsencrypt-<ENV> # staging or production
     solvers:
     - selector:
-        dnsNames:
-        - '*.example.com'
+        dnsZones:
+        - 'example.com'
       dns01:
         webhook:
           config:
