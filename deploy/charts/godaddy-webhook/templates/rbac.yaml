@@ -103,6 +103,14 @@ rules:
       - 'secrets'
     verbs:
       - 'get'
+  - apiGroups:
+      - ''
+    resources:
+      - 'configmaps'
+    verbs:
+      - 'get'
+      - 'list'
+      - 'watch'
 ---
 # Grant cert-manager-webhook-gandi permission to read the flow control mechanism (APF)
 # API Priority and Fairness is enabled by default in Kubernetes 1.20
