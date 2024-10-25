@@ -2,7 +2,7 @@
 
 set -e
 
-k8s_version=1.24.2
+k8s_version=1.29.1
 goarch=$(go env GOARCH)
 goos="unknown"
 

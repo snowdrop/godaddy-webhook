@@ -9,7 +9,8 @@ $(shell mkdir -p "$(OUT)")
 
 clean:
 	rm -rf vendor
-	rm -Rf $(OUT)/kubebuilder
+	rm -Rf $(OUT)
+	rm -rf apiserver.local.config
 
 install-tools:
 	sh ./scripts/fetch-test-binaries.sh

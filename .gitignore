@@ -2,6 +2,7 @@
 .idea
 _out
 apiserver.local.config
+bin
 
 # Test binary, build with `go test -c`
 *.test
