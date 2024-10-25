@@ -1,14 +1,16 @@
 package main
 
 import (
-	"github.com/cert-manager/cert-manager/test/acme"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/cert-manager/cert-manager/test/acme"
 )
 
 var (
-	zone = os.Getenv("TEST_ZONE_NAME")
+	zone      = os.Getenv("TEST_ZONE_NAME")
+	dnsServer = os.Getenv("TEST_DNS_SERVER")
 )
 
 func TestRunsSuite(t *testing.T) {
@@ -19,10 +21,15 @@ func TestRunsSuite(t *testing.T) {
 	pollTime, _ := time.ParseDuration("5s")
 	timeOut, _ := time.ParseDuration("3m")
 
+	if dnsServer == "" {
+		dnsServer = "1.1.1.1:53"
+	}
+
 	fixture := dns.NewFixture(&godaddyDNSSolver{},
 		dns.SetResolvedZone(zone),
 		dns.SetAllowAmbientCredentials(false),
 		dns.SetManifestPath("testdata/godaddy"),
+		dns.SetDNSServer(dnsServer),
 		dns.SetUseAuthoritative(false),
 
 		// Disable the extended test as godaddy do not support to create several records for the same Record DNS Name !!

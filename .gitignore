@@ -1,6 +1,7 @@
 # Folders to be excluded
 .idea
 _out
+apiserver.local.config
 
 # Test binary, build with `go test -c`
 *.test
