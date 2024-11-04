@@ -6,10 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
-	"github.com/cert-manager/cert-manager/pkg/issuer/acme/dns/util"
-	useragent "github.com/cert-manager/cert-manager/pkg/util"
-	"github.com/snowdrop/godaddy-webhook/logging"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -17,6 +13,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
+	"github.com/cert-manager/cert-manager/pkg/issuer/acme/dns/util"
+	useragent "github.com/cert-manager/cert-manager/pkg/util"
+	"github.com/snowdrop/godaddy-webhook/logging"
 
 	logrus "github.com/sirupsen/logrus"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -456,7 +457,7 @@ func (c *godaddyDNSSolver) extractRecordName(fqdn, domain string) string {
 }
 
 func (c *godaddyDNSSolver) extractDomainName(zone string) string {
-	authZone, err := util.FindZoneByFqdn(zone, util.RecursiveNameservers)
+	authZone, err := util.FindZoneByFqdn(context.TODO(), zone, util.RecursiveNameservers)
 	if err != nil {
 		return zone
 	}
@@ -464,7 +465,7 @@ func (c *godaddyDNSSolver) extractDomainName(zone string) string {
 }
 
 func (c *godaddyDNSSolver) getZone(fqdn string) (string, error) {
-	authZone, err := util.FindZoneByFqdn(fqdn, util.RecursiveNameservers)
+	authZone, err := util.FindZoneByFqdn(context.TODO(), fqdn, util.RecursiveNameservers)
 	if err != nil {
 		return "", err
 	}

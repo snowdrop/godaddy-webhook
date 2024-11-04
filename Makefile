@@ -9,7 +9,8 @@ $(shell mkdir -p "$(OUT)")
 
 clean:
 	rm -rf vendor
-	rm -Rf $(OUT)/kubebuilder
+	rm -Rf $(OUT)
+	rm -rf apiserver.local.config
 
 install-tools:
 	sh ./scripts/fetch-test-binaries.sh
@@ -21,7 +22,8 @@ test: clean install-tools
 	TEST_ASSET_ETCD=$(OUT)/kubebuilder/bin/etcd \
 	TEST_ASSET_KUBECTL=$(OUT)/kubebuilder/bin/kubectl \
 	TEST_ASSET_KUBE_APISERVER=$(OUT)/kubebuilder/bin/kube-apiserver \
-	TEST_ZONE_NAME=$(TEST_ZONE_NAME) go test .
+	TEST_ZONE_NAME=$(TEST_ZONE_NAME) \
+	TEST_DNS_SERVER=$(TEST_DNS_SERVER) go test .
 
 compile:
 	echo "### Go mod vendor ..."

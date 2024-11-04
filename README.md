@@ -258,8 +258,11 @@ or the following `make` command
 ```bash
 make test TEST_ZONE_NAME=<YOUR_DOMAIN.NAME>
 ```
-**IMPORTANT**: As godaddy server could be very slow to reply, it could be needed to increase the TTL defined within the `config.json` file. The test could also fail
-as the kube api server is currently finalizing the deletion of the namespace `"spec":{"finalizers":["kubernetes"]},"status":{"phase":"Terminating"}}`
+#### Common testing issues
+
+- As godaddy server could be very slow to reply, it could be needed to increase the TTL defined within the `config.json` file. 
+  - If increasing the TTL does not solve the issue, you can also try overriding the DNS server used for testing by setting the `TEST_DNS_SERVER` environment variable to match one of the name servers used by your domain. Ex `TEST_DNS_SERVER="pdns01.domaincontrol.com:53"`
+- The test could also fail as the kube api server is currently finalizing the deletion of the namespace `"spec":{"finalizers":["kubernetes"]},"status":{"phase":"Terminating"}}`
 
 ### Generate the container image
 
