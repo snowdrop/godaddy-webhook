@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'The version you want to release (e.g 0.2.0).'
+        description: 'The version you want to release (e.g 0.3.0).'
         required: true
 
 jobs:
