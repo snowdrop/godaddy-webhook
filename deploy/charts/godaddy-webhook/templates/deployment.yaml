@@ -30,7 +30,7 @@ spec:
             - --tls-cert-file=/tls/tls.crt
             - --tls-private-key-file=/tls/tls.key
             - --secure-port={{ default 443 .Values.pod.securePort }}
-            - --v {{ index $logLevels .Values.logging.level }}
+            - --v={{ index $logLevels .Values.logging.level }}
             {{- if or (eq .Values.logging.format "text") (eq .Values.logging.format "json") }}
             - --logging-format={{ .Values.logging.format }}
             {{- end }}
