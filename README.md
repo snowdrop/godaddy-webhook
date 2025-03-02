@@ -2,20 +2,23 @@
 
 Table of Contents
 =================
-  * [Introduction](#introduction)
-  * [Governance](#governance)
-  * [Platform](#platform)
-  * [Installation](#installation)
-      * [Cert Manager](#cert-manager)
-      * [The Godaddy webhook](#the-godaddy-webhook)
-        * [Helm deployment](#helm-deployment)
-        * [Manual installation](#manual-installation)
-  * [Issuer](#issuer)
-      * [Secret](#secret)
-      * [ClusterIssuer](#clusterissuer)
-  * [Development](#development)
-      * [Running the test suite](#running-the-test-suite)
-      * [Generate the container image](#generate-the-container-image)
+- [ACME Webhook for GoDaddy](#acme-webhook-for-godaddy)
+- [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Governance](#governance)
+  - [Platform](#platform)
+  - [Installation](#installation)
+    - [Cert Manager](#cert-manager)
+    - [The Godaddy webhook](#the-godaddy-webhook)
+      - [Helm deployment](#helm-deployment)
+      - [Manual installation](#manual-installation)
+  - [Issuer](#issuer)
+    - [Secret](#secret)
+    - [ClusterIssuer](#clusterissuer)
+  - [Development](#development)
+    - [Running the test suite](#running-the-test-suite)
+      - [Common testing issues](#common-testing-issues)
+    - [Generate the container image](#generate-the-container-image)
 
 ## Introduction
 
@@ -120,7 +123,7 @@ stringData:
   token: <GODADDY_API_KEY:GODADDY_SECRET_KEY>
 EOF
 ```
-- Next, deploy it under the namespace where you would like to get your certificate/key signed by the ACME CA Authority
+- Next, deploy it under the namespace where you would like to get your certificate/key signed by the ACME CA Authority (e.g. cert-manager)
 ```bash
 kubectl apply -f secret.yml -n <NAMESPACE>
 ```
