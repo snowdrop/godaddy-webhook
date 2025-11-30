@@ -20,6 +20,7 @@ certManager:
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+namespaceOverride: ""
 service:
   type: ClusterIP
   port: 443

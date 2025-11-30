@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "godaddy-webhook.fullname" . }}
+  namespace: {{ include "godaddy-webhook.namespace" . | quote }}
   labels:
 {{ include "godaddy-webhook.labels" . | indent 4 }}
 spec:
