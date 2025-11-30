@@ -24,7 +24,7 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: {{ include "godaddy-webhook.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ include "godaddy-webhook.namespace" . }}
 ---
 # apiserver gets the auth-delegator role to delegate auth decisions to
 # the core apiserver
@@ -32,7 +32,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "godaddy-webhook.fullname" . }}:auth-delegator
-  namespace: {{ include "godaddy-webhook.namespace" . | quote }}
   labels:
 {{ include "godaddy-webhook.labels" . | indent 4 }}
 roleRef:
@@ -43,14 +42,13 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: {{ include "godaddy-webhook.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ include "godaddy-webhook.namespace" . }}
 ---
 # Grant cert-manager permission to validate using our apiserver
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ include "godaddy-webhook.fullname" . }}:domain-solver
-  namespace: {{ include "godaddy-webhook.namespace" . | quote }}
   labels:
 {{ include "godaddy-webhook.labels" . | indent 4 }}
 rules:
@@ -65,7 +63,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "godaddy-webhook.fullname" . }}:domain-solver
-  namespace: {{ include "godaddy-webhook.namespace" . | quote }}
   labels:
 {{ include "godaddy-webhook.labels" . | indent 4 }}
 roleRef:
@@ -82,7 +79,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "godaddy-webhook.fullname" . }}
-  namespace: {{ include "godaddy-webhook.namespace" . | quote }}
   labels:
 {{ include "godaddy-webhook.labels" . | indent 4 }}
 roleRef:
@@ -93,13 +89,12 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: {{ include "godaddy-webhook.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ include "godaddy-webhook.namespace" . }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ include "godaddy-webhook.fullname" . }}
-  namespace: {{ include "godaddy-webhook.namespace" . | quote }}
   labels:
 {{ include "godaddy-webhook.labels" . | indent 4 }}
 rules:
@@ -125,7 +120,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ include "godaddy-webhook.fullname" . }}:flowcontrol-solver
-  namespace: {{ include "godaddy-webhook.namespace" . | quote }}
   labels:
 {{ include "godaddy-webhook.labels" . | indent 4 }}
 rules:
@@ -142,7 +136,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "godaddy-webhook.fullname" . }}:flowcontrol-solver
-  namespace: {{ include "godaddy-webhook.namespace" . | quote }}
   labels:
 {{ include "godaddy-webhook.labels" . | indent 4 }}
 roleRef:
@@ -153,4 +146,4 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: {{ include "godaddy-webhook.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ include "godaddy-webhook.namespace" . }}

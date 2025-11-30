@@ -60,5 +60,5 @@ spec:
     name: {{ include "godaddy-webhook.rootCAIssuer" . }}
   dnsNames:
   - {{ include "godaddy-webhook.fullname" . }}
-  - {{ include "godaddy-webhook.fullname" . }}.{{ .Release.Namespace }}
-  - {{ include "godaddy-webhook.fullname" . }}.{{ .Release.Namespace }}.svc
+  - {{ include "godaddy-webhook.fullname" . }}.{{ include "godaddy-webhook.namespace" . }}
+  - {{ include "godaddy-webhook.fullname" . }}.{{ include "godaddy-webhook.namespace" . }}.svc
