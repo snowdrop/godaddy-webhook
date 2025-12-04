@@ -36,15 +36,23 @@ The following table lists the configurable parameters of the chart and their def
 
 - Install the chart with default values:
 
-```powershell
-helm install godaddy-webhook deploy/charts/godaddy-webhook
+```bash
+export DOMAIN=acme.mydomain.com  # replace with your domain
+helm install godaddy-webhook deploy/charts/godaddy-webhook --set groupName=$DOMAIN
 ```
 
 - Install or upgrade with custom values:
 
-```powershell
-helm upgrade --install godaddy-webhook deploy/charts/godaddy-webhook -f my-values.yaml
+```bash
+export DOMAIN=acme.mydomain.com  # replace with your domain
+helm upgrade --install godaddy-webhook deploy/charts/godaddy-webhook -f my-values.yaml --set groupName=$DOMAIN
 ```
 
+- You can also use the Helm chart published on gh-pages
+```bash
+export DOMAIN=acme.mydomain.com  # replace with your domain
+helm repo add godaddy-webhook https://snowdrop.github.io/godaddy-webhook
+helm install acme-webhook godaddy-webhook/godaddy-webhook -n cert-manager --set groupName=$DOMAIN
+```
 Ensure your Issuer or ClusterIssuer is configured to use the same `groupName` as specified in this
 chart's values, and that cert-manager is installed and running in the cluster.
