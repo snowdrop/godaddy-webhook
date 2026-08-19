@@ -2,28 +2,10 @@
 
 set -e
 
-k8s_version=1.29.1
-goarch=$(go env GOARCH)
-goos="unknown"
-
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
-  goos="linux"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-  goos="darwin"
-fi
-
-if [[ "$goos" == "unknown" ]]; then
-  echo "OS '$OSTYPE' not supported. Aborting." >&2
-  exit 1
-fi
-
+k8s_version=1.29.x
 tmp_root=./_out
 kb_root_dir=$tmp_root/kubebuilder
 
-# Turn colors in this script off by setting the NO_COLOR variable in your
-# environment to any value:
-#
-# $ NO_COLOR=1 test.sh
 NO_COLOR=${NO_COLOR:-""}
 if [ -z "$NO_COLOR" ]; then
   header=$'\e[1;33m'
@@ -37,22 +19,23 @@ function header_text {
   echo "$header$*$reset"
 }
 
-# fetch k8s API gen tools and make it available under kb_root_dir/bin.
-function fetch_kb_tools {
-  header_text "fetching tools"
-  mkdir -p $tmp_root
-  kb_tools_archive_name="kubebuilder-tools-$k8s_version-$goos-$goarch.tar.gz"
-  kb_tools_download_url="https://storage.googleapis.com/kubebuilder-tools/$kb_tools_archive_name"
-  echo "URL: $kb_tools_download_url"
+header_text "fetching kubebuilder tools via setup-envtest"
 
-  kb_tools_archive_path="$tmp_root/$kb_tools_archive_name"
-  if [ ! -f $kb_tools_archive_path ]; then
-    curl -sL ${kb_tools_download_url} -o "$kb_tools_archive_path"
+if ! command -v setup-envtest &> /dev/null; then
+  header_text "installing setup-envtest..."
+  go install sigs.k8s.io/controller-runtime/tools/setup-envtest@${SETUP_ENVTEST_VERSION:-latest}
+fi
+
+mkdir -p "$kb_root_dir/bin"
+
+ENVTEST_DIR=$(setup-envtest use "$k8s_version" --bin-dir "$kb_root_dir" -p path)
+header_text "envtest binaries installed at: $ENVTEST_DIR"
+
+# Symlink binaries to the expected location for the Makefile
+for bin in etcd kube-apiserver kubectl; do
+  if [ -f "$ENVTEST_DIR/$bin" ]; then
+    ln -sf "$(cd "$ENVTEST_DIR" && pwd)/$bin" "$kb_root_dir/bin/$bin"
   fi
-  tar -zvxf "$kb_tools_archive_path" -C "$tmp_root/"
-}
+done
 
-fetch_kb_tools
-
-header_text "kubebuilder v$k8s_version tools (etcd, kubectl, kube-apiserver) used to perform local tests. It has been installed: $tmp_root/kubebuilder/bin/"
-exit 0
+header_text "kubebuilder tools (etcd, kubectl, kube-apiserver) available at: $kb_root_dir/bin/"

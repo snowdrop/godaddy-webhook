@@ -9,26 +9,30 @@ Table of Contents
   - [Platform](#platform)
   - [Installation](#installation)
     - [Cert Manager](#cert-manager)
-    - [The Godaddy webhook](#the-godaddy-webhook)
+    - [The GoDaddy webhook](#the-godaddy-webhook)
       - [Helm deployment](#helm-deployment)
       - [Manual installation](#manual-installation)
   - [Issuer](#issuer)
     - [Secret](#secret)
     - [ClusterIssuer](#clusterissuer)
+  - [API Version](#api-version)
   - [Development](#development)
-    - [Running the test suite](#running-the-test-suite)
+    - [Project structure](#project-structure)
+    - [Unit tests](#unit-tests)
+    - [DNS resolver test](#dns-resolver-test)
       - [Common testing issues](#common-testing-issues)
     - [Generate the container image](#generate-the-container-image)
+  - [Release](#release)
 
 ## Introduction
 
-This project maintains the code used by the [certificate manager](https://cert-manager.io/docs/configuration/acme/dns01/) to access the Godaddy [DNS provider](https://www.godaddy.com/) using a Kubernetes webhook
-which needs to be deployed on your kubernetes cluster. When called, the webhook will execute an ACME DNS challenge request to the DNS provider
+This project maintains the code used by the [certificate manager](https://cert-manager.io/docs/configuration/acme/dns01/) to access the GoDaddy [DNS provider](https://www.godaddy.com/) using a Kubernetes webhook
+which needs to be deployed on your kubernetes cluster. When called, the webhook will execute an [ACME DNS challenge](https://cert-manager.io/docs/configuration/acme/) request to the DNS provider
 to verify if the provider hosts the domain you are requesting a certificate.
 
 This project supports the following versions of the certificate manager:
 
-| Certificate Manager | Godaddy webhook    |
+| Certificate Manager | GoDaddy webhook    |
 |---------------------|--------------------|
 | [1.6 - 1.12]        | v0.1.0             | 
 | [> 1.13]            | [v0.2.0 .. v0.5.0] |
@@ -54,11 +58,11 @@ The image built supports as Arch: am64 and arm64 since release `>= 0.2.0`
 Follow the [instructions](https://cert-manager.io/docs/installation/) using the cert manager documentation to install it within your cluster.
 On kubernetes (>= 1.21), the process is pretty straightforward if you use the following commands:
 ```bash
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.17.4/cert-manager.yaml
 ```
 **NOTES**: Check the cert-manager releases note to verify which [version of certmanager](https://cert-manager.io/docs/installation/supported-releases/) is supported with Kubernetes or OpenShift
 
-### The Godaddy webhook
+### The GoDaddy webhook
 
 #### Helm deployment
 
@@ -68,7 +72,7 @@ export DOMAIN=acme.mydomain.com  # replace with your domain
 helm install -n cert-manager godaddy-webhook ./deploy/charts/godaddy-webhook --set groupName=$DOMAIN
 ```
 
-The `groupName` refers to a prior nonexistant Kubernetes API Group, under which custom resources are created.
+The `groupName` refers to a prior nonexistent Kubernetes API Group, under which custom resources are created.
 The name itself has no connection to the domain names for which certificates are issued, and using the default of
 `acme.mycompany.com` is fine.
 
@@ -106,14 +110,18 @@ sed "s/acme.mycompany.com/$DOMAIN/g" deploy/webhook-all.yml | kubectl apply --va
 
 ## Issuer
 
-In order to communicate with Godaddy DNS provider, we will create a Kubernetes Secret
-to store the Godaddy `API` and `GoDaddy Secret`. 
+In order to communicate with GoDaddy DNS provider, we will create a Kubernetes Secret
+to store the GoDaddy `API` and `GoDaddy Secret`. 
 Next, we will define a `ClusterIssuer` containing the information to access the ACME Letsencrypt Server
 and the DNS provider to be used
 
 ### Secret
 
-- Create a `Secret` containing as key parameter the concatenation of the Godaddy Api and Secret separated by ":"
+Create a `Secret` containing your GoDaddy credentials. The format depends on the API version you use:
+
+- **API v1** — concatenation of the GoDaddy API key and secret separated by `:`
+- **API v3** — a Personal Access Token (see [Creating a PAT](#creating-a-personal-access-token-pat))
+
 ```yaml
 cat <<EOF > secret.yml
 apiVersion: v1
@@ -122,7 +130,9 @@ metadata:
   name: godaddy-api-key
 type: Opaque
 stringData:
-  token: <GODADDY_API_KEY:GODADDY_SECRET_KEY>
+  # For API v1: <GODADDY_API_KEY>:<GODADDY_SECRET_KEY>
+  # For API v3: <YOUR_PERSONAL_ACCESS_TOKEN>
+  token: <YOUR_CREDENTIALS>
 EOF
 ```
 - Next, deploy it under the namespace where you would like to get your certificate/key signed by the ACME CA Authority (e.g. cert-manager)
@@ -133,7 +143,7 @@ kubectl apply -f secret.yml -n <NAMESPACE>
 ### ClusterIssuer
 
 - Create a `ClusterIssuer` resource to specify the address of the ACME staging or production server to access.
-  Add the DNS01 Solver Config that this webhook will use to communicate with the API of the Godaddy Server in order to create
+  Add the DNS01 Solver Config that this webhook will use to communicate with the API of the GoDaddy Server in order to create
    or delete an ACME Challenge TXT record that the DNS Provider will accept/refuse if the domain name exists.
 
 ```yaml
@@ -163,11 +173,15 @@ spec:
               name: godaddy-api-key
               key: token
             production: true
+            # apiVersion: "v3"  # Uncomment to use GoDaddy API v3 (requires a PAT, see API Version section)
             ttl: 600
           groupName: acme.mycompany.com
           solverName: godaddy
 EOF
 ```
+
+> **Note**: By default, the webhook uses GoDaddy API **v1**. To use **v3**, add `apiVersion: "v3"` to the webhook config and use a [Personal Access Token](#creating-a-personal-access-token-pat) in your secret instead of an API key pair. See [API Version](#api-version) for details.
+
 - Next, install it on your kubernetes cluster
 ```bash
 kubectl apply -f clusterissuer.yml
@@ -228,46 +242,200 @@ kubectl apply -f ingress.yml -n <NAMESPACE>
 
 **NOTE**: If you prefer to delegate to the certmanager the responsibility to create the Certificate resource, then add the following annotation as described within the documentation `    certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"`
 
-## Development
+## API Version
 
-### Running the test suite
+This webhook supports two versions of the GoDaddy API. You can select which version to use via the `apiVersion` field in the webhook solver config.
 
-**IMPORTANT**: Use the testsuite carefully and do not launch it too much times as the DNS servers could fail and report such a message `suite.go:62: error waiting for record to be deleted: unexpected error from DNS server: SERVFAIL`
+> **Deprecation notice**: GoDaddy will deprecate API v1 in a future release. Starting with godaddy-webhook **1.x**, API v3 will become the default and v1 support will be removed. We recommend migrating your configuration to `apiVersion: "v3"` now.
 
-To test one of your registered domains on godaddy, create a secret.yml file using as [example] file(./testdata/godaddy/godaddy.secret.example)
-Replace the `$GODADDY_TOKEN` with your Godaddy API token which corresponds to your `<GODADDY_API_KEY>:<GODADDY_SECRET_KEY>`:
+### API v1 (default)
 
-```bash
-pushd testdata/godaddy
-export GODADDY_TOKEN=$(echo -n "<GODADDY_API_KEY:GODADDY_SECRET_KEY>")
-envsubst < godaddy.secret.example > secret.yaml
-popd
+The original GoDaddy Domains API. Uses `sso-key` authentication with an API key and secret pair.
+
+```yaml
+dns01:
+  webhook:
+    config:
+      apiKeySecretRef:
+        name: godaddy-api-key
+        key: token
+      production: true
+      apiVersion: "v1"
+      ttl: 600
+    groupName: acme.mycompany.com
+    solverName: godaddy
 ```
 
-Install a kube-apiserver, etcd locally using the following bash script
+When `apiVersion` is omitted, it defaults to `"v1"`.
+
+### API v3
+
+The newer GoDaddy Domains API. This version introduces several breaking changes compared to v1.
+
+#### What changes with v3
+
+| | API v1 | API v3 |
+|---|--------|--------|
+| **Authentication** | `sso-key` (API key + secret) | **Bearer token** (Personal Access Token) |
+| **Endpoint paths** | `/v1/domains/{domain}/records/TXT/{name}` | `/v3/domains/zones/{zone}/dns-records` |
+| **Record filtering** | Path segments | Query parameters (`?type=TXT&name=...`) |
+| **Create method** | `PUT` (replace all) | `POST` (append) |
+| **Delete method** | `DELETE` by type/name | `DELETE` by record ID (auto-resolved) |
+| **Secret format** | `<API_KEY>:<API_SECRET>` | `<PERSONAL_ACCESS_TOKEN>` |
+
+See the [GoDaddy v3 API documentation](https://developer.godaddy.com/en/docs/references/rest/domains/v3/records) for details.
+
+#### Creating a Personal Access Token (PAT)
+
+API v3 **does not support** the legacy `sso-key` authentication. You must create a Personal Access Token:
+
+1. Go to the [GoDaddy Developer Portal](https://developer.godaddy.com)
+2. Navigate to **API Keys** > **Create New API Key**
+3. Select **Personal Access Token** as the key type
+4. Grant the following scopes:
+   - `domains.domain:read`
+   - `domains.dns:update`
+5. Copy the generated token
+
+#### Secret for v3
+
+The Kubernetes secret for v3 contains the PAT as a single value (no colon-separated key pair):
+
+```yaml
+cat <<EOF > secret.yml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: godaddy-api-key
+type: Opaque
+stringData:
+  token: <YOUR_PERSONAL_ACCESS_TOKEN>
+EOF
+```
+
+```bash
+kubectl apply -f secret.yml -n <NAMESPACE>
+```
+
+#### ClusterIssuer config for v3
+
+```yaml
+dns01:
+  webhook:
+    config:
+      apiKeySecretRef:
+        name: godaddy-api-key
+        key: token
+      production: true
+      apiVersion: "v3"
+      ttl: 600
+    groupName: acme.mycompany.com
+    solverName: godaddy
+```
+
+## Development
+
+### Project structure
+
+```
+main.go                          -- webhook solver (entry point)
+dns_resolver_test.go             -- cert-manager conformance tests
+internal/
+  auth/auth.go                   -- credential extraction from K8s secrets
+  auth/auth_test.go              -- auth unit tests
+  dns/dns.go                     -- DNS zone and record name helpers
+  godaddy/
+    types.go                     -- Client interface, DNSRecord, shared HTTP helper
+    v1/client.go                 -- GoDaddy API v1 implementation
+    v1/client_test.go            -- v1 unit tests
+    v3/client.go                 -- GoDaddy API v3 implementation
+    v3/client_test.go            -- v3 unit tests
+  logging/logging.go             -- log configuration
+```
+
+### Unit tests
+
+Run the API client unit tests (no cluster or credentials required):
+
+```bash
+make test-unit    # all unit tests
+make test-v1      # v1 client tests only
+make test-v3      # v3 client tests only
+```
+
+### DNS resolver test
+
+The DNS resolver test (`dns_resolver_test.go`) runs the cert-manager conformance suite against a real GoDaddy domain. It creates and deletes actual TXT records, so use it sparingly.
+
+**IMPORTANT**: Do not run this test too frequently — GoDaddy DNS servers may fail and report `SERVFAIL`.
+
+#### Setup
+
+Create secret files with your GoDaddy credentials. The example template is at `testdata/godaddy/godaddy.secret.example` and must be generated into each API version folder:
+
+```bash
+# For API v1 (API key + secret separated by ':')
+export GODADDY_TOKEN=$(echo -n "<GODADDY_API_KEY>:<GODADDY_SECRET_KEY>")
+envsubst < testdata/godaddy/godaddy.secret.example > testdata/godaddy/v1/secret.yaml
+
+# For API v3 (Personal Access Token)
+export GODADDY_TOKEN=$(echo -n "<YOUR_PERSONAL_ACCESS_TOKEN>")
+envsubst < testdata/godaddy/godaddy.secret.example > testdata/godaddy/v3/secret.yaml
+```
+
+Install the kubebuilder test binaries (etcd, kube-apiserver, kubectl):
 
 ```bash
 ./scripts/fetch-test-binaries.sh
 ```
 
-Now, execute the test suite and pass as parameter the domain name to be tested
+#### Running with API v1 (default)
 
 ```bash
-TEST_ASSET_ETCD=_out/kubebuilder/bin/etcd \
-TEST_ASSET_KUBECTL=_out/kubebuilder/bin/kubectl \
-TEST_ASSET_KUBE_APISERVER=_out/kubebuilder/bin/kube-apiserver \
-TEST_ZONE_NAME=<YOUR_DOMAIN.NAME>. go test -v .
+make test TEST_ZONE_NAME=<YOUR_DOMAIN>. TEST_DNS_SERVER="<NAMESERVER>:53"
 ```
 
-or the following `make` command
+#### Running with API v3
+
 ```bash
-make test TEST_ZONE_NAME=<YOUR_DOMAIN.NAME>
+make test TEST_ZONE_NAME=<YOUR_DOMAIN>. TEST_DNS_SERVER="<NAMESERVER>:53" TEST_API_VERSION=v3
 ```
+
+#### Increasing the propagation timeout
+
+By default, the test waits up to **3 minutes** for DNS propagation. If GoDaddy DNS is slow, you can increase this via `TEST_TIMEOUT`:
+
+```bash
+make test TEST_ZONE_NAME=<YOUR_DOMAIN>. TEST_DNS_SERVER="<NAMESERVER>:53" TEST_TIMEOUT=5m
+```
+
+#### Example
+
+```bash
+# Find your domain's authoritative nameserver
+dig NS snowdrop.dev +short
+# ns33.domaincontrol.com.
+
+# Run with v1
+make test TEST_ZONE_NAME=snowdrop.dev. TEST_DNS_SERVER="ns33.domaincontrol.com:53"
+
+# Run with v3
+make test TEST_ZONE_NAME=snowdrop.dev. TEST_DNS_SERVER="ns33.domaincontrol.com:53" TEST_API_VERSION=v3
+```
+
 #### Common testing issues
 
-- As godaddy server could be very slow to reply, it could be needed to increase the TTL defined within the `config.json` file. 
-  - If increasing the TTL does not solve the issue, you can also try overriding the DNS server used for testing by setting the `TEST_DNS_SERVER` environment variable to match one of the name servers used by your domain. Ex `TEST_DNS_SERVER="pdns01.domaincontrol.com:53"`
-- The test could also fail as the kube api server is currently finalizing the deletion of the namespace `"spec":{"finalizers":["kubernetes"]},"status":{"phase":"Terminating"}}`
+- **`SERVFAIL` or `REFUSED` during DNS propagation check**: The integration test creates a real TXT record via the GoDaddy API and then queries a DNS server to verify the record propagated. Public resolvers like `1.1.1.1` may return `SERVFAIL` due to slow propagation. To work around this, use the authoritative nameserver for your domain. Find it with:
+  ```bash
+  dig NS <YOUR_DOMAIN> +short
+  ```
+  Then pass it to the test:
+  ```bash
+  make test TEST_ZONE_NAME=<YOUR_DOMAIN>. TEST_DNS_SERVER="<NAMESERVER>:53"
+  # Example: make test TEST_ZONE_NAME=snowdrop.dev. TEST_DNS_SERVER="ns33.domaincontrol.com:53"
+  ```
+- **Slow GoDaddy responses**: If the above does not help, increase the propagation timeout by passing `TEST_TIMEOUT` (default `3m`), e.g. `make test ... TEST_TIMEOUT=5m`.
+- **Namespace finalizer errors**: The test could also fail if the kube-apiserver is still finalizing the deletion of a namespace from a previous run (`"status":{"phase":"Terminating"}`). Wait a moment and retry.
 
 ### Generate the container image
 
@@ -291,3 +459,22 @@ IMAGE_REPOSITORY="quay.io/snowdrop"
 make build IMAGE_NAME=${IMAGE_REPOSITORY}
 make push
 ```
+
+## Release
+
+Releases are driven by `.github/project.yml`. To create a new release:
+
+1. Update `current-version` and `next-version` in `.github/project.yml`:
+   ```yaml
+   current-version: "0.8.0"
+   next-version: "0.9.0"
+   ```
+2. Push the change to `main`. The `prepare-release` workflow will automatically:
+   - Create a `release/<version>` branch
+   - Update the Helm chart and image tag to match the release version
+   - Open a Pull Request
+3. Review and merge the PR. The `release` workflow will then:
+   - Build and push the Docker image to quay.io
+   - Publish the Helm chart via chart-releaser
+   - Tag the release as `v<version>`
+   - Bump the chart files to the next development version

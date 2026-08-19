@@ -1,0 +1,86 @@
+name: Build PR image
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile'
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build_pr_image:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build & push Docker image
+        uses: mr-smithers-excellent/docker-build-push@v6
+        with:
+          image: snowdrop/cert-manager-webhook-godaddy
+          tags: pr-${{ github.event.pull_request.number }}
+          enableBuildKit: true
+          multiPlatform: true
+          platform: linux/amd64,linux/arm64
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT_USER }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = `pr-${{ github.event.pull_request.number }}`;
+            const image = `quay.io/snowdrop/cert-manager-webhook-godaddy:${tag}`;
+            const body = `### Test image ready
+
+            \`${image}\`
+
+            **To test on a kind cluster:**
+
+            \`\`\`fish
+            # Pull, save, and load into kind
+            podman pull ${image}
+            podman save ${image} -o /tmp/webhook-pr.tar
+            kind load image-archive /tmp/webhook-pr.tar --name cert-manager-test
+            rm /tmp/webhook-pr.tar
+
+            # Install or upgrade the webhook
+            helm upgrade --install -n cert-manager godaddy-webhook ./deploy/charts/godaddy-webhook \\
+              --set groupName=\\$DOMAIN \\
+              --set image.tag=${tag} \\
+              --set image.pullPolicy=Never
+            \`\`\``;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('### Test image ready'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
