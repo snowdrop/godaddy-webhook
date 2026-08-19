@@ -1,0 +1,74 @@
+name: Prepare Release PR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/project.yml'
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Read version from project.yml
+        id: read-version
+        run: |
+          CURRENT_VERSION=$(yq '.current-version' .github/project.yml)
+          NEXT_VERSION=$(yq '.next-version' .github/project.yml)
+          echo "current-version=${CURRENT_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "next-version=${NEXT_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Release version: ${CURRENT_VERSION}"
+          echo "Next version: ${NEXT_VERSION}"
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Create release branch and update versions
+        run: |
+          RELEASE_VERSION=${{ steps.read-version.outputs.current-version }}
+          git checkout -b release/${RELEASE_VERSION}
+
+          export TAG_VERSION=${RELEASE_VERSION}
+          yq '.appVersion = env(TAG_VERSION)' -i ./deploy/charts/godaddy-webhook/Chart.yaml
+          yq '.version = env(TAG_VERSION)' -i ./deploy/charts/godaddy-webhook/Chart.yaml
+          yq '.image.tag = env(TAG_VERSION)' -i ./deploy/charts/godaddy-webhook/values.yaml
+
+          git commit -asm "chore: bump Helm chart version to ${RELEASE_VERSION}"
+          git push origin release/${RELEASE_VERSION}
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_VERSION=${{ steps.read-version.outputs.current-version }}
+          NEXT_VERSION=${{ steps.read-version.outputs.next-version }}
+
+          gh pr create \
+            --base main \
+            --head release/${RELEASE_VERSION} \
+            --title "Release ${RELEASE_VERSION}" \
+            --body "$(cat <<EOF
+          ## Release ${RELEASE_VERSION}
+
+          This PR was automatically created by updating \`.github/project.yml\`.
+
+          ### Changes
+          - Helm chart \`appVersion\` set to \`${RELEASE_VERSION}\`
+          - Helm chart \`version\` set to \`${RELEASE_VERSION}\`
+          - Docker image tag set to \`${RELEASE_VERSION}\`
+
+          ### Next version
+          After merging, the next development version will be \`${NEXT_VERSION}\`.
+
+          > **Merging this PR will trigger the release workflow.**
+          EOF
+          )"
