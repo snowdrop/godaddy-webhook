@@ -1,17 +1,24 @@
-name: Build and push godaddy webhook image
+name: Build and push GoDaddy webhook image
 on:
-  pull_request:
-    branches: [ main ]
   push:
-    branches:
-      - main
+    branches: [main]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile'
+  workflow_dispatch:
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   build_push_image:
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2

@@ -1,0 +1,8 @@
+{
+  "apiKeySecretRef": {
+    "name": "godaddy-credentials",
+    "key": "token"
+  },
+  "production": true,
+  "apiVersion": "v3"
+}

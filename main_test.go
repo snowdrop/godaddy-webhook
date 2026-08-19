@@ -1,45 +1,73 @@
 package main
 
 import (
-	"os"
+	"strings"
 	"testing"
-	"time"
 
-	"github.com/cert-manager/cert-manager/test/acme"
+	certmgrv1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 )
 
-var (
-	zone      = os.Getenv("TEST_ZONE_NAME")
-	dnsServer = os.Getenv("TEST_DNS_SERVER")
-)
-
-func TestRunsSuite(t *testing.T) {
-	// The manifest path should contain a file named config.json that is a
-	// snippet of valid configuration that should be included on the
-	// ChallengeRequest passed as part of the test cases.
-
-	pollTime, _ := time.ParseDuration("5s")
-	timeOut, _ := time.ParseDuration("3m")
-
-	if dnsServer == "" {
-		dnsServer = "1.1.1.1:53"
+func TestGodaddyDNSSolverValidate(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     *godaddyDNSProviderConfig
+		wantErr string
+	}{
+		{
+			name: "missing secret name",
+			cfg: &godaddyDNSProviderConfig{
+				APIKeySecretRef: certmgrv1.SecretKeySelector{Key: "token"},
+			},
+			wantErr: "apiKeySecretRef.name must be set",
+		},
+		{
+			name: "missing secret key",
+			cfg: &godaddyDNSProviderConfig{
+				APIKeySecretRef: certmgrv1.SecretKeySelector{
+					LocalObjectReference: certmgrv1.LocalObjectReference{Name: "godaddy-secret"},
+				},
+			},
+			wantErr: "apiKeySecretRef.key must be set",
+		},
+		{
+			name: "unsupported api version",
+			cfg: &godaddyDNSProviderConfig{
+				APIKeySecretRef: certmgrv1.SecretKeySelector{
+					LocalObjectReference: certmgrv1.LocalObjectReference{Name: "godaddy-secret"},
+					Key:                  "token",
+				},
+				APIVersion: "v2",
+			},
+			wantErr: "apiVersion must be one of: v1, v3",
+		},
+		{
+			name: "supported api version",
+			cfg: &godaddyDNSProviderConfig{
+				APIKeySecretRef: certmgrv1.SecretKeySelector{
+					LocalObjectReference: certmgrv1.LocalObjectReference{Name: "godaddy-secret"},
+					Key:                  "token",
+				},
+				APIVersion: "v3",
+			},
+		},
 	}
 
-	fixture := dns.NewFixture(&godaddyDNSSolver{},
-		dns.SetResolvedZone(zone),
-		dns.SetAllowAmbientCredentials(false),
-		dns.SetManifestPath("testdata/godaddy"),
-		dns.SetDNSServer(dnsServer),
-		dns.SetUseAuthoritative(false),
-
-		// Disable the extended test as godaddy do not support to create several records for the same Record DNS Name !!
-		dns.SetStrict(false),
-
-		// Increase the poll interval to 10s
-		dns.SetPollInterval(pollTime),
-		// Increase the limit from 2 min to 5 min
-		dns.SetPropagationLimit(timeOut),
-	)
-
-	fixture.RunConformance(t)
+	solver := &godaddyDNSSolver{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := solver.validate(tt.cfg)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected error %q, got nil", tt.wantErr)
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("expected error containing %q, got %q", tt.wantErr, err.Error())
+			}
+		})
+	}
 }
