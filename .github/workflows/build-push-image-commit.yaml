@@ -22,8 +22,7 @@ jobs:
           image: snowdrop/cert-manager-webhook-godaddy
           addLatest: true
           enableBuildKit: true
-          multiPlatform: true
-          platform: linux/amd64,linux/arm64
+          platform: linux/amd64
           registry: quay.io
           username: ${{ secrets.QUAY_ROBOT_USER }}
           password: ${{ secrets.QUAY_ROBOT_TOKEN }}
